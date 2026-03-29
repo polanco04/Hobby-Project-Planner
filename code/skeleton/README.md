@@ -1,10 +1,11 @@
 ## Skeleton
 
 This folder contains the basic setup of the app.
-It has 3 pages:
-    - Home
-    - Projects
-    - Profile
+
+It has 3 pages: 
+- Home
+- Projects
+- Profile
 
 From here, further development can start.
 

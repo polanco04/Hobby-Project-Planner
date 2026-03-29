@@ -1,0 +1,1 @@
+This is where all the code for the hobby project planner will be. 

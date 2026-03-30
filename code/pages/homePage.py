@@ -2,8 +2,6 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout
 from qfluentwidgets import (
     BodyLabel, CardWidget, SubtitleLabel
 )
-
-
 class HomePage(QWidget):
     def __init__(self):
         super().__init__()

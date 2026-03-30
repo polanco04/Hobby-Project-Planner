@@ -3,9 +3,9 @@
 This is where the code of the app will be stored. 
 
 It has the app's pages:
-    - Home
-    - Projects
-    - Profile
+- Home
+- Projects
+-  Profile
 
 From here, further development can start.
 

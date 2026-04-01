@@ -16,4 +16,4 @@ class ProjectPage(QWidget):
 
         layout.addStretch()
 
-        self.setLayout(layout)
+        self.setLayout(layout) # showing smth

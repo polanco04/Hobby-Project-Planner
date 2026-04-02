@@ -1,3 +1,4 @@
-from .homePage import HomePage
-from .projectPage import ProjectPage
-from .profilePage import profilePage
+from .HomePage import homePage
+from .ProjectPage import projectPage
+from .ProfilePage import profilePage
+from .ProjectViewPage import projectViewPage

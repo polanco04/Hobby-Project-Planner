@@ -1,17 +1,17 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout
 from qfluentwidgets import SubtitleLabel
 
-class projectPage(QWidget):
+class projectViewPage(QWidget):
     def __init__(self):
         super().__init__()
 
-        self.setObjectName("projectPage")
-
+        self.setObjectName("projectViewPage")
+        
         layout = QVBoxLayout()
         layout.setContentsMargins(30, 20, 30, 20)
         layout.setSpacing(16)
 
-        self.label = SubtitleLabel("Projects")
+        self.label = SubtitleLabel("Project View")
         layout.addWidget(self.label)
 
         layout.addStretch()

@@ -7,7 +7,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPixmap, QPainter, QPainterPath, QColor
 from qfluentwidgets import (
     SubtitleLabel, StrongBodyLabel, BodyLabel,
-    LineEdit, TextEdit, PrimaryPushButton, CardWidget, FluentIcon as FIF
+    LineEdit, TextEdit, PrimaryPushButton, PushButton, CardWidget, FluentIcon as FIF
 )
 
 # Project-relative data directory: <repo root>/data/
@@ -73,6 +73,10 @@ class AvatarLabel(QLabel):
                 shutil.copy2(path, _AVATAR_FILE)
                 self._pixmap = QPixmap(str(_AVATAR_FILE))
                 self.update()
+                # Notify the parent page so it can show the remove button
+                page = self.parent().parent()
+                if hasattr(page, "_updateRemoveBtn"):
+                    page._updateRemoveBtn()
         # End: selected image is copied to the data folder and shown in the avatar
 
     def paintEvent(self, event):
@@ -129,13 +133,19 @@ class profilePage(QWidget):
 
         cardLayout.addWidget(StrongBodyLabel("User Information"))
 
-        # Avatar (centered)
+        # Avatar (centered) with remove button below it
         avatarRow = QVBoxLayout()
         avatarRow.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         self.avatar = AvatarLabel(96, card)
         if _AVATAR_FILE.exists():
             self.avatar.setPixmap(QPixmap(str(_AVATAR_FILE)))
         avatarRow.addWidget(self.avatar, alignment=Qt.AlignmentFlag.AlignHCenter)
+
+        self._removePhotoBtn = PushButton("Remove Photo")
+        self._removePhotoBtn.setFixedWidth(120)
+        self._removePhotoBtn.clicked.connect(self._removePhoto)
+        self._removePhotoBtn.hide()  # only shown in edit mode when a photo exists
+        avatarRow.addWidget(self._removePhotoBtn, alignment=Qt.AlignmentFlag.AlignHCenter)
         cardLayout.addLayout(avatarRow)
 
         # ── View mode ────────────────────────────────────────────────────────
@@ -195,6 +205,7 @@ class profilePage(QWidget):
             self._usernameEdit.setText(self._usernameDisplay.text())
             self._bioEdit.setPlainText(self._bioDisplay.text())
             self.avatar.setEditMode(True)
+            self._updateRemoveBtn()
             self._viewWidget.hide()
             self._editWidget.show()
             self._editBtn.setText("Save Profile")
@@ -211,7 +222,22 @@ class profilePage(QWidget):
                 self.avatar.setPixmap(QPixmap(str(_AVATAR_FILE)))
 
             self.avatar.setEditMode(False)
+            self._removePhotoBtn.hide()
             self._editWidget.hide()
             self._viewWidget.show()
             self._editBtn.setText("Edit Profile")
         # End: page is now showing either edit inputs or the saved profile display
+
+    def _updateRemoveBtn(self):
+        # Start: show the remove button only when in edit mode and a photo exists
+        self._removePhotoBtn.setVisible(_AVATAR_FILE.exists())
+        # End: remove button visibility is now in sync with whether a photo is set
+
+    def _removePhoto(self):
+        # Start: delete the saved avatar file and reset the avatar to the default icon
+        if _AVATAR_FILE.exists():
+            _AVATAR_FILE.unlink()
+        self.avatar._pixmap = None
+        self.avatar.update()
+        self._removePhotoBtn.hide()
+        # End: avatar is cleared and the default placeholder icon is shown again

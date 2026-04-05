@@ -51,9 +51,30 @@ class projectViewPage(QWidget):
         topLayout.addWidget(self.backButton, alignment=Qt.AlignmentFlag.AlignTop)
         topLayout.addLayout(textLayout)
         topLayout.addStretch()
+        
 
         # Add the top layout to the main layout
         layout.addLayout(topLayout)
+
+        # Tabs container for Tasks, Milestones, Images and Export
+        self.tabsWidget = QWidget()
+        self.tabsLayout = QHBoxLayout(self.tabsWidget)
+        self.tabsLayout.setSpacing(12)
+
+        # Four tab items 
+        self.taskTab = QLabel("Tasks")
+        self.milestonesTab = QLabel("Milestones")
+        self.imagesTab = QLabel("Images")
+        self.exportTab = QLabel("Export")
+
+        self.tabsLayout.addWidget(self.taskTab)
+        self.tabsLayout.addWidget(self.milestonesTab)
+        self.tabsLayout.addWidget(self.imagesTab)
+        self.tabsLayout.addWidget(self.exportTab)
+        self.tabsLayout.addStretch()
+
+        layout.addWidget(self.tabsWidget)
+
         layout.addStretch()
 
         self.setLayout(layout)
@@ -65,9 +86,16 @@ class projectViewPage(QWidget):
         if isDarkTheme():
             self.backButton.setStyleSheet("color: #FFFFFF;")
             self.projectDescription.setStyleSheet("color: #FFFFFF;")
+            tabsColor = "#FFFFFF"
         else:
             self.backButton.setStyleSheet("color: #202020;")
             self.projectDescription.setStyleSheet("color: #404040;")
+            tabsColor = "#202020"
+
+        self.taskTab.setStyleSheet(f"color: {tabsColor};")
+        self.milestonesTab.setStyleSheet(f"color: {tabsColor};")
+        self.imagesTab.setStyleSheet(f"color: {tabsColor};")
+        self.exportTab.setStyleSheet(f"color: {tabsColor};")
 
     def changeEvent(self, event):
         super().changeEvent(event)
@@ -77,5 +105,9 @@ class projectViewPage(QWidget):
     def showEvent(self, event):
         super().showEvent(event)
         self._applyThemeColors()
+
+
+
+
 
     

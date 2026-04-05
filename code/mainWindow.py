@@ -21,6 +21,7 @@ class MainWindow(FluentWindow):
         self.addSubInterface(self.homePage, FIF.HOME, "Home")
         self.addSubInterface(self.projectPage, FIF.FOLDER, "Projects")
         self.addSubInterface(self.profilePage, FIF.PEOPLE, "Profile")
+        self.addSubInterface(self.projectViewPage, FIF.PEOPLE, "Project View")
         self.navigationInterface.setReturnButtonVisible(False)
 
         # Add theme toggle — connect via signal only, no onClick param

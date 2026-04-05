@@ -12,7 +12,7 @@ class MainWindow(FluentWindow):
         self.resize(600, 400)
 
         # Create pages
-        self.homePage = homePage()
+        self.homePage = homePage(self)
         self.projectPage = projectPage()
         self.profilePage = profilePage()
         self.projectViewPage = projectViewPage()

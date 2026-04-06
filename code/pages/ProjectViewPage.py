@@ -1,6 +1,9 @@
 ## Project View Page 
 ## This page will show the details of a specific project when selected within the
 ## Projects pages.
+
+
+## NOTE: Comments are not done, still need documentation
 from PyQt6.QtWidgets import (
     QFrame,
     QHBoxLayout,

@@ -202,7 +202,7 @@ class projectViewPage(QWidget):
         titleFont.setBold(True)
         titleLabel.setFont(titleFont)
 
-        helpLabel = QLabel("Content for this tab will go here.")
+        helpLabel = QLabel()
         helpLabel.setWordWrap(True)
 
         pageLayout.addWidget(titleLabel)

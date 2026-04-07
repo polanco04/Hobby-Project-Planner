@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout
 from qfluentwidgets import SubtitleLabel
 
-class ProjectPage(QWidget):
+class projectPage(QWidget):
     def __init__(self):
         super().__init__()
 

@@ -2,7 +2,7 @@ from qfluentwidgets import (
     FluentWindow, NavigationItemPosition, toggleTheme, NavigationToolButton
 )
 from qfluentwidgets import FluentIcon as FIF
-from pages import HomePage, ProjectPage, profilePage
+from pages import homePage, projectPage, profilePage, projectViewPage
 
 class MainWindow(FluentWindow):
     def __init__(self):
@@ -12,14 +12,16 @@ class MainWindow(FluentWindow):
         self.resize(600, 400)
 
         # Create pages
-        self.homePage = HomePage()
-        self.projectPage = ProjectPage()
+        self.homePage = homePage()
+        self.projectPage = projectPage()
         self.profilePage = profilePage()
+        self.projectViewPage = projectViewPage()
 
         # Add to Fluent navigation
         self.addSubInterface(self.homePage, FIF.HOME, "Home")
         self.addSubInterface(self.projectPage, FIF.FOLDER, "Projects")
         self.addSubInterface(self.profilePage, FIF.PEOPLE, "Profile")
+        self.addSubInterface(self.projectViewPage, FIF.PEOPLE, "Project View")
         self.navigationInterface.setReturnButtonVisible(False)
 
         # Add theme toggle — connect via signal only, no onClick param

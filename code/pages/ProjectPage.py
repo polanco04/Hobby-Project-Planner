@@ -1,97 +1,106 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QSizePolicy
-from PyQt6.QtCore import Qt, pyqtSignal
-from qfluentwidgets import SubtitleLabel, BodyLabel, CardWidget, ComboBox
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSizePolicy
+from PyQt6.QtCore import Qt
+from qfluentwidgets import (
+    BodyLabel, CardWidget, SubtitleLabel, TitleLabel, PrimaryPushButton, 
+    HorizontalSeparator, IconWidget
+)
+from qfluentwidgets import FluentIcon as FIF
+from pages.widgets import createFeatureCard
+import random
 
-
-class ProjectCard(CardWidget):
-    clicked = pyqtSignal()
-
-    def __init__(self, title, description="", parent=None):
-        super().__init__(parent)
-
-        self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 16, 20, 16)
-        layout.setSpacing(6)
-
-        self.titleLabel = SubtitleLabel(title)
-        layout.addWidget(self.titleLabel)
-
-        self.descriptionLabel = BodyLabel(description)
-        self.descriptionLabel.setWordWrap(True)
-        layout.addWidget(self.descriptionLabel)
-
-    def mousePressEvent(self, event):
-        self.clicked.emit()
-        super().mousePressEvent(event)
-
-
-class TaskCard(CardWidget):
-    def __init__(self, title, priority, parent=None):
-        super().__init__(parent)
-
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(16, 12, 16, 12)
-        layout.setSpacing(4)
-
-        self.titleLabel = SubtitleLabel(title)
-        self.priorityLabel = BodyLabel(f"Priority: {priority}")
-
-        layout.addWidget(self.titleLabel)
-        layout.addWidget(self.priorityLabel)
-
+FEATURE_CARDS = {
+    "Start a new project": [
+        "projectImages/startProject1.jpg",
+        "projectImages/startProject2.jpg",
+        "projectImages/startProject3.jpg",
+    ],
+    "Stay organized": [
+        "projectImages/organize1.jpg",
+        "projectImages/organize2.jpg",
+        "projectImages/organize3.jpg",
+    ],
+    "Bring ideas to life": [
+        "projectImages/ideas1.jpg",
+        "projectImages/ideas2.jpg",
+        "projectImages/ideas3.jpg",
+    ],
+}
 
 class projectPage(QWidget):
     def __init__(self):
         super().__init__()
-
         self.setObjectName("projectPage")
+        
+        outer = QVBoxLayout(self)
+        outer.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
+        outer.setContentsMargins(40, 0, 40, 0) 
 
-        self.projects = [
-            {"title": "Painting Project", "description": "Track painting progress and ideas."},
-            {"title": "Woodworking Build", "description": "Keep materials, steps, and notes."},
-            {"title": "Guitar Practice", "description": "Organize songs and practice goals."},
-        ]
+        container = QWidget()
+        container.setMaximumWidth(1000)
+        container.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
 
-        self.layout = QVBoxLayout()
-        self.layout.setContentsMargins(30, 20, 30, 20)
-        self.layout.setSpacing(16)
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(40, 40, 40, 40)
+        layout.setSpacing(30)
+        
+        headerRow = QHBoxLayout()
+        headerRow.addWidget(TitleLabel("Projects"))
+        headerRow.addStretch() 
 
-        self.label = SubtitleLabel("Projects")
-        self.layout.addWidget(self.label)
+        btn = PrimaryPushButton("+ New Project")
+        btn.setFixedWidth(150)
+        btn.setFixedHeight(40)
+        headerRow.addWidget(btn)
 
-        self.projectsContainer = QWidget()
-        self.projectsLayout = QVBoxLayout()
-        self.projectsLayout.setContentsMargins(0, 0, 0, 0)
-        self.projectsLayout.setSpacing(12)
-        self.projectsContainer.setLayout(self.projectsLayout)
+        layout.addLayout(headerRow)
+        layout.addWidget(self.createNpCard())
+        layout.addStretch() 
+        layout.addWidget(HorizontalSeparator())
 
-        self.layout.addWidget(self.projectsContainer)
-        self.layout.addStretch()
+        self.featureRow = QHBoxLayout()
+        self.featureRow.setSpacing(20)
+        
 
-        self.setLayout(self.layout)
+        layout.addLayout(self.featureRow)
 
-        self.loadProjects()
+        outer.addWidget(container)
 
-    def loadProjects(self):
-        while self.projectsLayout.count():
-            item = self.projectsLayout.takeAt(0)
-            widget = item.widget()
-            if widget:
-                widget.deleteLater()
+    def showEvent(self, event):
+        super().showEvent(event)
+        self.refreshFeatureCards()
 
-        if not self.projects:
-            self.emptyLabel = BodyLabel("No projects yet.")
-            self.emptyLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.projectsLayout.addWidget(self.emptyLabel)
-            return
+    def refreshFeatureCards(self):
+        while self.featureRow.count():
+            item = self.featureRow.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
 
-        for project in self.projects:
-            card = ProjectCard(project["title"], project["description"])
-            card.clicked.connect(lambda checked=False, p=project: self.openProject(p))
-            self.projectsLayout.addWidget(card)
+        for caption, images in FEATURE_CARDS.items():
+            image = random.choice(images)
+            self.featureRow.addWidget(createFeatureCard(image, caption))
 
-    def openProject(self, project):
-        print("Project clicked:", project["title"])
+    def createNpCard(self):
+        card = CardWidget()
+        layout = QVBoxLayout(card)
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter) 
+        layout.setContentsMargins(40, 40, 40, 40)
+        layout.setSpacing(10)
+
+        iconWidget = IconWidget(FIF.FOLDER)
+        iconWidget.setFixedSize(60, 60)
+
+        iconRow = QHBoxLayout()
+        iconRow.addStretch()
+        iconRow.addWidget(iconWidget)
+        iconRow.addStretch()
+
+        title = SubtitleLabel("No projects yet")
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        body = BodyLabel("Create your first project to get started!")
+        body.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        layout.addLayout(iconRow)
+        layout.addWidget(title)
+        layout.addWidget(body)
+        return card

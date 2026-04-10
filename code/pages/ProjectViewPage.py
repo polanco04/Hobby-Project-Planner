@@ -18,8 +18,6 @@ from PyQt6.QtCore import QEvent, Qt
 from PyQt6.QtGui import QFont
 from qfluentwidgets import SubtitleLabel, isDarkTheme
 
-
-
 class projectViewPage(QWidget):
     def __init__(self):
         super().__init__()

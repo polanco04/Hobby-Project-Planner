@@ -34,9 +34,9 @@ class homePage(QWidget):
 
         featureRow = QHBoxLayout()
         featureRow.setSpacing(20)
-        featureRow.addWidget(self.createFeatureCard("images/tasks.jpg", "Organize your tasks"))
-        featureRow.addWidget(self.createFeatureCard("images/milestones.jpg", "Track milestones"))
-        featureRow.addWidget(self.createFeatureCard("images/notes.jpg", "Document progress"))
+        featureRow.addWidget(self.createFeatureCard("homeImages/tasks.jpg", "Organize your tasks"))
+        featureRow.addWidget(self.createFeatureCard("homeImages/milestones.jpg", "Track milestones"))
+        featureRow.addWidget(self.createFeatureCard("homeImages/notes.jpg", "Document progress"))
 
         layout.addLayout(featureRow)
 

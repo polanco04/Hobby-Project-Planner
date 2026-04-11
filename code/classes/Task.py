@@ -1,9 +1,9 @@
 from datetime import datetime
 from typing import Any
-from Reminder import Reminder
+from .Reminder import Reminder
 
 class Task:
-    def __init__(self, taskId: int, name: str, description: str, deadline: datetime, estimatedTime: int):
+    def __init__(self, name: str, description: str, deadline: datetime, estimatedTime: int):
         name = name.strip()
         description = description.strip()
 
@@ -13,7 +13,7 @@ class Task:
         if estimatedTime < 0:
             raise ValueError("Estimated time cannot be negative.")
 
-        self.taskId = taskId
+        self.taskId = None
         self.name = name
         self.description = description
         self.dateCreated = datetime.now()
@@ -29,7 +29,7 @@ class Task:
 
         self.dateCompleted = datetime.now()
 
-    def addDependency(self, task: Task) -> None:
+    def addDependency(self, task) -> None:
         if task is self:
             raise ValueError("A task cannot depend on itself.")
 
@@ -41,7 +41,7 @@ class Task:
 
         self.dependencies.append(task)
 
-    def removeDependency(self, task: Task) -> None:
+    def removeDependency(self, task) -> None:
         if task in self.dependencies:
             self.dependencies.remove(task)
 

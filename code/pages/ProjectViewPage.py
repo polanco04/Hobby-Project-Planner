@@ -264,3 +264,8 @@ class projectViewPage(QWidget):
         mainWindow = self.window()
         if hasattr(mainWindow, "switchTo") and hasattr(mainWindow, "projectPage"):
             mainWindow.switchTo(mainWindow.projectPage)
+
+    def setProject(self, project):
+        self.project = project
+        self.projectTitle.setText(project.title)
+        self.projectDescription.setText(project.description)

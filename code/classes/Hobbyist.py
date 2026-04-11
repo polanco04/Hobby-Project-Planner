@@ -1,5 +1,6 @@
-from Project import Project 
-import datetime
+from .Project import Project 
+from .ProjectExporter import ProjectExporter
+from datetime import datetime
 
 class Hobbyist:
     def __init__(self, username: str):
@@ -7,6 +8,7 @@ class Hobbyist:
         self.bio: str = ""
         self.profilePicture: str = None
         self.projects: list[Project] = []
+        self.projectId = 1
 
     def setUsername(self, username: str): 
         self.username = username.strip()
@@ -17,10 +19,10 @@ class Hobbyist:
     def createProject(self, title: str, description: str, deadline: datetime) -> Project:
         if len(self.projects) >= 3:
             raise Exception("You can only have 3 projects at a time")
-
-        projectId = len(self.projects) + 1 
-        project = Project(projectId, title, description, deadline)
+ 
+        project = Project(self.projectId, title, description, deadline)
         self.projects.append(project)
+        self.projectId += 1
         return project
 
     def deleteProject(self, projectId: int):

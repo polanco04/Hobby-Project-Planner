@@ -1,8 +1,8 @@
 from enum import Enum
-from Milestone import Milestone
-from Task import Task
-from Media import Media
-import datetime
+from .Milestone import Milestone
+from .Task import Task
+from .Media import Media
+from datetime import datetime
 
 class ProjectStatus(Enum):
     PLANNING = "planning"
@@ -20,6 +20,9 @@ class Project:
         self.progress = 0.0
         self.dateCreated = datetime.now()
         self.dateCompleted: datetime = None
+        self.taskId = 1
+        self.milestoneId = 1
+        self.mediaId = 1
         self.milestones: list[Milestone] = []
         self.tasks: list[Task] = []
         self.media: list[Media] = []
@@ -27,47 +30,50 @@ class Project:
     def addTask(self, task: Task):
         # 15 tasks since theres only 5 milestones per project, 
         # and each milestone can only have 3 tasks per milestone
-        if self.tasks >= 15:
+        if len(self.tasks) >= 15:
             raise Exception("Cannot have more than 15 tasks")
+        
+        task.taskId = self.taskId
+        self.taskId += 1
         self.tasks.append(task)
 
     def removeTask(self, taskId: int):
-        if self.tasks:
-            for task in self.tasks:
-                if task.taskId == taskId:
-                    self.tasks.remove(task)
-                    break
-        else:
-             raise Exception("You have no tasks") 
+        for task in self.tasks:
+            if task.taskId == taskId:
+                self.tasks.remove(task)
+                return
+            
+        raise Exception(f"Task {taskId} not found")
     
     def addMilestone(self, milestone: Milestone):
-        if self.milestones >= 5:
+        if len(self.milestones) >= 5:
             raise Exception("Cannot have more than 5 milestones")
         
+        milestone.milestoneId = self.milestoneId
+        self.milestoneId += 1
         self.milestones.append(milestone)
     
     def removeMilestone(self, milestoneId: int):
-        if self.milestones:
-            for milestone in self.milestones:
-                if milestone.milestoneId == milestoneId:
-                    self.milestones.remove(milestone)
-                    break
-        else:
-            raise Exception("You have no Milestones")
+        for milestone in self.milestones:
+            if milestone.milestoneId == milestoneId:
+                self.milestones.remove(milestone)
+                return
+        raise Exception(f"Milestone {milestoneId} not found")
     
     def addMedia(self, media: Media):
-        if self.media >= 3:
+        if len(self.media) >= 3:
             raise Exception("Cannot have more than 3 photos")
+        
+        media.mediaId = self.mediaId
+        self.mediaId += 1
         self.media.append(media)
 
     def removeMedia(self, mediaId: int):
-        if self.media:
-            for media in self.media:
-                if media.mediaId == mediaId:
-                    self.media.remove(media)
-                    break
-        else:
-            raise Exception("You have no media")
+        for media in self.media:
+            if media.mediaId == mediaId:
+                self.media.remove(media)
+                return
+        raise Exception(f"Media {mediaId} not found")
 
     def editProject(self, title: str = None, description: str = None, deadline: datetime = None):
         if title: 

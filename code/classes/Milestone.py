@@ -1,11 +1,10 @@
-from Task import Task
-import datetime
+from .Task import Task
+from datetime import datetime
 
 class Milestone:
-    def __init__(self, milestoneId: int, name: str, deadline: datetime):
-        self.milestoneId = milestoneId
+    def __init__(self, name: str, deadline: datetime):
+        self.milestoneId = None
         self.name = name.strip()
-        self.progress = 0.0
         self.createdAt = datetime.now()
         self.deadline = deadline
         self.tasks: list[Task] = []
@@ -20,15 +19,10 @@ class Milestone:
             if task.dateCompleted:
                 tasksCompleted += 1
 
-        self.progress = (tasksCompleted / len(self.tasks)) * 100
-
-        return self.progress 
+        return (tasksCompleted / len(self.tasks)) * 100 
     
     def isReached(self):
-        if self.progress == 100:
-            return True
-        
-        return False
+        return self.getProgress() == 100.0
     
     def addTask(self, task: Task):
         if len(self.tasks) >= 3:
@@ -36,5 +30,6 @@ class Milestone:
         self.tasks.append(task)
     
     def markComplete(self):
-        # this would be some GUI thing i think
-        return
+        for task in self.tasks:
+            if not task.dateCompleted:
+                task.markComplete()

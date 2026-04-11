@@ -1,78 +1,87 @@
-# Task Class 
+from __future__ import annotations
 
-from dataclasses import dataclass
+from datetime import datetime
 from typing import Any
 
 
-VALID_PRIORITIES = {"Low", "Medium", "High"}
-
-@dataclass
 class Task:
-    title: str
-    description: str = ""
-    priority: str = "Medium"
-    completed: bool = False
+    def __init__(
+        self,
+        taskId: int,
+        name: str,
+        description: str,
+        deadline: datetime,
+        estimatedTime: int,
+    ):
+        name = name.strip()
+        description = description.strip()
 
+        if not name:
+            raise ValueError("Task name cannot be empty.")
 
-    def __post_init__(self) -> None:
-        self.title = self.title.strip()
-        self.description = self.description.strip()
-        self.priority = self.priority.strip().title()
+        if estimatedTime < 0:
+            raise ValueError("Estimated time cannot be negative.")
 
+        self.taskId = taskId
+        self.name = name
+        self.description = description
+        self.dateCreated = datetime.now()
+        self.dateCompleted: datetime | None = None
+        self.deadline = deadline
+        self.estimatedTime = estimatedTime
+        self.reminders: list[Any] = []
+        self.dependencies: list[Task] = []
 
-        if not self.title:
-            raise ValueError("Task title cannot be empty")
-        
-        if self.priority not in VALID_PRIORITIES:
-            raise ValueError(
-                f"Invalid priority '{self.priority}'. Choose from: "
-                f"{', '.join(sorted(VALID_PRIORITIES))}."
-    
-            )
-    
-    def mark_complete(self) -> None:
-        self.completed = True
+    def markComplete(self) -> None:
+        if self.isBlocked():
+            raise ValueError("Cannot complete a task while it is blocked by dependencies.")
 
-    def mark_incomplete(self) -> None:
-        self.completed = False
+        self.dateCompleted = datetime.now()
 
-    def update_details(
-            self, 
-            *,
-            title: str | None = None,
-            description: str | None = None,
-            priority: str | None = None,
-    ) -> None:
-        
-        if title is not None:
-            self.description = description.strip()
+    def addDependency(self, task: Task) -> None:
+        if task is self:
+            raise ValueError("A task cannot depend on itself.")
 
-        
-        if priority is not None:
-            cleaned_priority = priority.strip().title()
-            if cleaned_priority not in VALID_PRIORITIES:
-                raise ValueError (
-                    f"Invalid priority '{cleaned_priority}'. Choose from: "
-                    f"{', '.join(sorted(VALID_PRIORITIES))}."
-                )
-            self.priority = cleaned_priority
+        if task in self.dependencies:
+            return
 
-    
-    def to_dict(self) -> dict[str, Any]:
+        if self in task.dependencies:
+            raise ValueError("This dependency would create a circular relationship.")
+
+        self.dependencies.append(task)
+
+    def removeDependency(self, task: Task) -> None:
+        if task in self.dependencies:
+            self.dependencies.remove(task)
+
+    def isBlocked(self) -> bool:
+        for dependency in self.dependencies:
+            if dependency.dateCompleted is None:
+                return True
+        return False
+
+    def updateDetails(self, name: str, desc: str) -> None:
+        cleaned_name = name.strip()
+        cleaned_desc = desc.strip()
+
+        if not cleaned_name:
+            raise ValueError("Task name cannot be empty.")
+
+        self.name = cleaned_name
+        self.description = cleaned_desc
+
+    def addReminder(self, reminder: Any) -> None:
+        self.reminders.append(reminder)
+
+    def toDict(self) -> dict[str, Any]:
         return {
-            "title": self.title,
+            "taskId": self.taskId,
+            "name": self.name,
             "description": self.description,
-            "priority": self.priority,
-            "completed": self.completed,
-
+            "dateCreated": self.dateCreated,
+            "dateCompleted": self.dateCompleted,
+            "deadline": self.deadline,
+            "estimatedTime": self.estimatedTime,
+            "reminders": self.reminders,
+            "dependencies": [dependency.taskId for dependency in self.dependencies],
         }
-    
-    @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "Task":
-        return cls(
-            title = str(data.get("title", "")),
-            description = str(data.get("description", "")),
-            priority = str(data.get("priority", "Medium")),
-            completed = bool(data.get("completed", False)),
-            
-        )

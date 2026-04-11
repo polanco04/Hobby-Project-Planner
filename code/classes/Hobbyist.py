@@ -3,13 +3,13 @@ import datetime
 
 class Hobbyist:
     def __init__(self, username: str):
-        self.username = username
+        self.username = username.strip()
         self.bio: str = ""
         self.profilePicture: str = None
         self.projects: list[Project] = []
 
     def setUsername(self, username: str): 
-        self.username = username
+        self.username = username.strip()
 
     def setBio(self, bio: str): 
         self.bio = bio

@@ -59,7 +59,6 @@ class projectPage(QWidget):
 
         self.featureRow = QHBoxLayout()
         self.featureRow.setSpacing(20)
-        
 
         layout.addLayout(self.featureRow)
 

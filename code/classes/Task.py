@@ -49,5 +49,30 @@ class Task:
 
         
         if priority is not None:
-            self.priority = priority.strip()
-        
+            cleaned_priority = priority.strip().title()
+            if cleaned_priority not in VALID_PRIORITIES:
+                raise ValueError (
+                    f"Invalid priority '{cleaned_priority}'. Choose from: "
+                    f"{', '.join(sorted(VALID_PRIORITIES))}."
+                )
+            self.priority = cleaned_priority
+
+    
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "title": self.title,
+            "description": self.description,
+            "priority": self.priority,
+            "completed": self.completed,
+
+        }
+    
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "Task":
+        return cls(
+            title = str(data.get("title", "")),
+            description = str(data.get("description", "")),
+            priority = str(data.get("priority", "Medium")),
+            completed = bool(data.get("completed", False)),
+            
+        )

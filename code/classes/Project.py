@@ -11,10 +11,10 @@ class ProjectStatus(Enum):
     ON_HOLD = "on_hold"
 
 class Project:
-    def __init__(self, projectId, title, description, deadline):
+    def __init__(self, projectId: int, title: str, description: str, deadline: datetime):
         self.projectId = projectId
-        self.title = title
-        self.description = description
+        self.title = title.strip()
+        self.description = description.strip()
         self.deadline = deadline
         self.status = ProjectStatus.PLANNING
         self.progress = 0.0
@@ -53,9 +53,9 @@ class Project:
 
     def editProject(self, title: str = None, description: str = None, deadline: datetime = None):
         if title: 
-            self.title = title
+            self.title = title.strip()
         if description:
-            self.description = description
+            self.description = description.strip()
         if deadline:
             self.deadline = deadline
 

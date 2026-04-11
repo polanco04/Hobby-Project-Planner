@@ -25,31 +25,49 @@ class Project:
         self.media: list[Media] = []
 
     def addTask(self, task: Task):
+        # 15 tasks since theres only 5 milestones per project, 
+        # and each milestone can only have 3 tasks per milestone
+        if self.tasks >= 15:
+            raise Exception("Cannot have more than 15 tasks")
         self.tasks.append(task)
 
     def removeTask(self, taskId: int):
-        for task in self.tasks:
-            if task.taskId == taskId:
-                self.tasks.remove(task)
-                break
+        if self.tasks:
+            for task in self.tasks:
+                if task.taskId == taskId:
+                    self.tasks.remove(task)
+                    break
+        else:
+             raise Exception("You have no tasks") 
     
     def addMilestone(self, milestone: Milestone):
+        if self.milestones >= 5:
+            raise Exception("Cannot have more than 5 milestones")
+        
         self.milestones.append(milestone)
     
     def removeMilestone(self, milestoneId: int):
-        for milestone in self.milestones:
-            if milestone.milestoneId == milestoneId:
-                self.milestones.remove(milestone)
-                break
+        if self.milestones:
+            for milestone in self.milestones:
+                if milestone.milestoneId == milestoneId:
+                    self.milestones.remove(milestone)
+                    break
+        else:
+            raise Exception("You have no Milestones")
     
     def addMedia(self, media: Media):
+        if self.media >= 3:
+            raise Exception("Cannot have more than 3 photos")
         self.media.append(media)
 
     def removeMedia(self, mediaId: int):
-        for media in self.media:
-            if media.mediaId == mediaId:
-                self.media.remove(media)
-                break
+        if self.media:
+            for media in self.media:
+                if media.mediaId == mediaId:
+                    self.media.remove(media)
+                    break
+        else:
+            raise Exception("You have no media")
 
     def editProject(self, title: str = None, description: str = None, deadline: datetime = None):
         if title: 
@@ -69,9 +87,9 @@ class Project:
             if task.dateCompleted:
                 tasksCompleted += 1
 
-        completed = (tasksCompleted / len(self.tasks)) * 100
+        self.progress = (tasksCompleted / len(self.tasks)) * 100
 
-        return completed 
+        return self.progress 
     
     def completedTasks(self):
         completed = []

@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Any
+from Reminder import Reminder
 
 class Task:
     def __init__(self, taskId: int, name: str, description: str, deadline: datetime, estimatedTime: int):
@@ -19,7 +20,7 @@ class Task:
         self.dateCompleted: datetime | None = None
         self.deadline = deadline
         self.estimatedTime = estimatedTime
-        self.reminders: list[Any] = []
+        self.reminders: list[Reminder] = []
         self.dependencies: list[Task] = []
 
     def markComplete(self) -> None:

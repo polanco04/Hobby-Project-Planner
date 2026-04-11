@@ -1,18 +1,8 @@
-from __future__ import annotations
-
 from datetime import datetime
 from typing import Any
 
-
 class Task:
-    def __init__(
-        self,
-        taskId: int,
-        name: str,
-        description: str,
-        deadline: datetime,
-        estimatedTime: int,
-    ):
+    def __init__(self, taskId: int, name: str, description: str, deadline: datetime, estimatedTime: int):
         name = name.strip()
         description = description.strip()
 
@@ -61,14 +51,14 @@ class Task:
         return False
 
     def updateDetails(self, name: str, desc: str) -> None:
-        cleaned_name = name.strip()
-        cleaned_desc = desc.strip()
+        cleanedName = name.strip()
+        cleanedDesc = desc.strip()
 
-        if not cleaned_name:
+        if not cleanedName:
             raise ValueError("Task name cannot be empty.")
 
-        self.name = cleaned_name
-        self.description = cleaned_desc
+        self.name = cleanedName
+        self.description = cleanedDesc
 
     def addReminder(self, reminder: Any) -> None:
         self.reminders.append(reminder)

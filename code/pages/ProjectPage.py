@@ -7,6 +7,7 @@ from qfluentwidgets import (
 from qfluentwidgets import FluentIcon as FIF
 from components.widgets import createFeatureCard
 from components.projectMessageBox import NewProjectDialog
+from components.editProjectDialog import EditProjectDialog
 from classes.Hobbyist import Hobbyist
 import random
 
@@ -152,18 +153,29 @@ class projectPage(QWidget):
 
         textLayout = QVBoxLayout()
         title = SubtitleLabel(project.title.upper())
+        title.setFont(QFont("Segoe UI", 14))
         desc = BodyLabel(project.description)
+        desc.setFont(QFont("Segoe UI", 11))
         desc.setWordWrap(True)
         textLayout.addWidget(title)
         textLayout.addWidget(desc)
 
+        # Button row
+        btnRow = QVBoxLayout()
         openBtn = PushButton("Open")
         openBtn.setFixedWidth(80)
         openBtn.clicked.connect(lambda checked=False, p=project: self.openProject(p))
 
+        editBtn = PushButton("Edit")
+        editBtn.setFixedWidth(80)
+        editBtn.clicked.connect(lambda checked=False, p=project: self.editProject(p))
+
+        btnRow.addWidget(openBtn)
+        btnRow.addWidget(editBtn)
+
         layout.addLayout(textLayout)
         layout.addStretch()
-        layout.addWidget(openBtn, alignment=Qt.AlignmentFlag.AlignVCenter)
+        layout.addLayout(btnRow)
 
         return card
 
@@ -172,3 +184,14 @@ class projectPage(QWidget):
         if hasattr(mainWindow, "projectViewPage"):
             mainWindow.projectViewPage.setProject(project)
             mainWindow.switchTo(mainWindow.projectViewPage)
+
+    def editProject(self, project):
+        dialog = EditProjectDialog(project, self.window())
+        if dialog.exec():
+            values = dialog.getValues()
+            project.editProject(
+                title=values["title"],
+                description=values["description"],
+                deadline=values["deadline"]
+            )
+            self.refreshProjects()

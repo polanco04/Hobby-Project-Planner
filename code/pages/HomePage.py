@@ -2,49 +2,84 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSizePoli
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtCore import Qt
 from qfluentwidgets import (
-    BodyLabel, CardWidget, SubtitleLabel, TitleLabel, PrimaryPushButton, 
-    HorizontalSeparator, CaptionLabel
+    BodyLabel, CardWidget, SubtitleLabel, TitleLabel, PrimaryPushButton,
+    HorizontalSeparator, CaptionLabel, PushButton
 )
+
 class homePage(QWidget):
-    def __init__(self, mainWindow=None):
+    def __init__(self, mainWindow=None, hobbyist=None):
         super().__init__()
         self.setObjectName("homePage")
         self.mainWindow = mainWindow
-        # Outer layout just for centering
+        self.hobbyist = hobbyist
+
         outer = QVBoxLayout(self)
         outer.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
-        outer.setContentsMargins(40, 0, 40, 0)  # left/right margins give breathing room
+        outer.setContentsMargins(40, 0, 40, 0)
 
-        # Inner container with a fixed width
         container = QWidget()
         container.setMaximumWidth(1000)
         container.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
 
-        layout = QVBoxLayout(container)
-        layout.setContentsMargins(40, 40, 40, 40)
-        layout.setSpacing(30)
+        self.mainLayout = QVBoxLayout(container)
+        self.mainLayout.setContentsMargins(40, 40, 40, 40)
+        self.mainLayout.setSpacing(30)
 
-        layout.addWidget(TitleLabel("Welcome!"))
-        layout.addWidget(BodyLabel("Enjoy and track your hobbies!"))
-        layout.addWidget(self.createStCard())
+        # Swappable top area
+        self.topWidget = QWidget()
+        self.mainLayout.addWidget(self.topWidget)
 
-        layout.addStretch() 
-
-        layout.addWidget(HorizontalSeparator())
+        self.mainLayout.addStretch()
+        self.mainLayout.addWidget(HorizontalSeparator())
 
         featureRow = QHBoxLayout()
         featureRow.setSpacing(20)
         featureRow.addWidget(self.createFeatureCard("homeImages/tasks.jpg", "Organize your tasks"))
         featureRow.addWidget(self.createFeatureCard("homeImages/milestones.jpg", "Track milestones"))
         featureRow.addWidget(self.createFeatureCard("homeImages/notes.jpg", "Document progress"))
-
-        layout.addLayout(featureRow)
+        self.mainLayout.addLayout(featureRow)
 
         outer.addWidget(container)
+
+        self.refreshHome()
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        self.refreshHome()
+
+    def refreshHome(self):
+        self.topWidget.deleteLater()
+        self.topWidget = QWidget()
+        topLayout = QVBoxLayout(self.topWidget)
+        topLayout.setContentsMargins(0, 0, 0, 0)
+        topLayout.setSpacing(16)
+        self.mainLayout.insertWidget(0, self.topWidget)
+
+        if not self.hobbyist or not self.hobbyist.projects:
+            topLayout.addWidget(TitleLabel("Welcome!"))
+            topLayout.addWidget(BodyLabel("Enjoy and track your hobbies!"))
+            topLayout.addWidget(self.createStCard())
+        else:
+            topLayout.addWidget(TitleLabel("Welcome back"))
+            topLayout.addWidget(BodyLabel("Small progress is still progress."))
+            topLayout.addWidget(self.createContinueCard())
+
+            otherProjects = self.hobbyist.projects[:-1]
+            if otherProjects:
+                topLayout.addWidget(SubtitleLabel("Other Projects"))
+                otherRow = QHBoxLayout()
+                otherRow.setSpacing(16)
+                for project in otherProjects:
+                    otherRow.addWidget(self.createOtherProjectCard(project))
+                otherRow.addStretch()
+                topLayout.addLayout(otherRow)
 
     def createStCard(self):
         card = CardWidget()
         layout = QVBoxLayout(card)
+        layout.setContentsMargins(40, 20, 20, 20)
+        layout.setSpacing(5)
+
         title = SubtitleLabel("Get started")
         body = BodyLabel("You haven't created any projects yet. Start your first hobby project today!")
         btn = PrimaryPushButton("Go to Projects →")
@@ -56,10 +91,62 @@ class homePage(QWidget):
         layout.addWidget(body)
         layout.addSpacing(15)
         layout.addWidget(btn)
-        layout.setContentsMargins(40, 20, 20, 20)
-        card.setLayout(layout)
         return card
-    
+
+    def createContinueCard(self):
+        project = self.hobbyist.projects[-1]
+        card = CardWidget()
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(8)
+
+        layout.addWidget(BodyLabel("Continue where you left off"))
+
+        bottomRow = QHBoxLayout()
+        textLayout = QVBoxLayout()
+        title = SubtitleLabel(project.title.upper())
+        desc = BodyLabel(project.description.upper())
+        desc.setWordWrap(True)
+        textLayout.addWidget(title)
+        textLayout.addWidget(desc)
+
+        continueBtn = PrimaryPushButton("Continue →")
+        continueBtn.setFixedWidth(120)
+        continueBtn.clicked.connect(lambda checked=False, p=project: self.openProject(p))
+
+        bottomRow.addLayout(textLayout)
+        bottomRow.addStretch()
+        bottomRow.addWidget(continueBtn, alignment=Qt.AlignmentFlag.AlignVCenter)
+        layout.addLayout(bottomRow)
+        return card
+
+    def createOtherProjectCard(self, project):
+        card = CardWidget()
+        layout = QHBoxLayout(card)
+        layout.setContentsMargins(20, 20, 20, 20)
+
+        textLayout = QVBoxLayout()
+        title = SubtitleLabel(project.title.upper())
+        desc = BodyLabel(project.description.upper())
+        desc.setWordWrap(True)
+        textLayout.addWidget(title)
+        textLayout.addWidget(desc)
+
+        openBtn = PushButton("Open")
+        openBtn.setFixedWidth(80)
+        openBtn.clicked.connect(lambda checked=False, p=project: self.openProject(p))
+
+        layout.addLayout(textLayout)
+        layout.addStretch()
+        layout.addWidget(openBtn, alignment=Qt.AlignmentFlag.AlignVCenter)
+        return card
+
+    def openProject(self, project):
+        mainWindow = self.window()
+        if hasattr(mainWindow, "projectViewPage"):
+            mainWindow.projectViewPage.setProject(project)
+            mainWindow.switchTo(mainWindow.projectViewPage)
+
     def createFeatureCard(self, imagePath, caption):
         wrapper = QWidget()
         wrapperLayout = QVBoxLayout(wrapper)
@@ -67,7 +154,7 @@ class homePage(QWidget):
 
         card = CardWidget()
         card_layout = QVBoxLayout(card)
-        
+
         img_label = QLabel()
         img_label.setPixmap(
             QPixmap(imagePath).scaled(250, 180, Qt.AspectRatioMode.KeepAspectRatioByExpanding)
@@ -80,5 +167,4 @@ class homePage(QWidget):
 
         wrapperLayout.addWidget(card)
         wrapperLayout.addWidget(captionLabel)
-
         return wrapper

@@ -1,11 +1,14 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSizePolicy
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QSizePolicy
 from PyQt6.QtCore import Qt
 from qfluentwidgets import (
     BodyLabel, CardWidget, SubtitleLabel, TitleLabel, PrimaryPushButton, 
-    HorizontalSeparator, IconWidget
+    HorizontalSeparator, IconWidget, InfoBar, InfoBarPosition, PushButton
 )
 from qfluentwidgets import FluentIcon as FIF
-from pages.widgets import createFeatureCard
+from components.widgets import createFeatureCard
+from components.projectMessageBox import NewProjectDialog
+from components.editProjectDialog import EditProjectDialog
+from classes.Hobbyist import Hobbyist
 import random
 
 FEATURE_CARDS = {
@@ -27,8 +30,9 @@ FEATURE_CARDS = {
 }
 
 class projectPage(QWidget):
-    def __init__(self):
+    def __init__(self, hobbyist: Hobbyist):
         super().__init__()
+        self.hobbyist = hobbyist
         self.setObjectName("projectPage")
         
         outer = QVBoxLayout(self)
@@ -39,35 +43,72 @@ class projectPage(QWidget):
         container.setMaximumWidth(1000)
         container.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
 
-        layout = QVBoxLayout(container)
-        layout.setContentsMargins(40, 40, 40, 40)
-        layout.setSpacing(30)
+        mainLayout = QVBoxLayout(container)
+        mainLayout.setContentsMargins(40, 40, 40, 40)
+        mainLayout.setSpacing(30)
         
+        # Header row
         headerRow = QHBoxLayout()
         headerRow.addWidget(TitleLabel("Projects"))
         headerRow.addStretch() 
-
         btn = PrimaryPushButton("+ New Project")
+        btn.clicked.connect(self.openNewProjectDialog)
         btn.setFixedWidth(150)
         btn.setFixedHeight(40)
         headerRow.addWidget(btn)
+        mainLayout.addLayout(headerRow)
 
-        layout.addLayout(headerRow)
-        layout.addWidget(self.createNpCard())
-        layout.addStretch() 
-        layout.addWidget(HorizontalSeparator())
+        # Swappable projects area ← this was missing
+        self.projectsContainer = QVBoxLayout()
+        self.projectsContainer.setSpacing(10)
+        mainLayout.addLayout(self.projectsContainer)
+
+        mainLayout.addStretch() 
+        mainLayout.addWidget(HorizontalSeparator())
 
         self.featureRow = QHBoxLayout()
         self.featureRow.setSpacing(20)
-        
-
-        layout.addLayout(self.featureRow)
+        mainLayout.addLayout(self.featureRow)
 
         outer.addWidget(container)
+
+        self.refreshProjects()  # must be after projectsContainer is defined
 
     def showEvent(self, event):
         super().showEvent(event)
         self.refreshFeatureCards()
+    
+    def openNewProjectDialog(self):
+        dialog = NewProjectDialog(self.window())
+        if dialog.exec():
+            values = dialog.getValues()
+            try:
+                project = self.hobbyist.createProject(
+                    values["title"],
+                    values["description"],
+                    values["deadline"]
+                )
+                self.refreshProjects()
+            except Exception as e:
+                InfoBar.warning(
+                    title="Couldn't create project",
+                    content=str(e),
+                    parent=self,
+                    duration=3000,
+                    position=InfoBarPosition.TOP
+                )
+
+    def refreshProjects(self):
+        while self.projectsContainer.count():
+            item = self.projectsContainer.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+
+        if not self.hobbyist.projects:
+            self.projectsContainer.addWidget(self.createNpCard())
+        else:
+            for project in self.hobbyist.projects:
+                self.projectsContainer.addWidget(self.createProjectCard(project))
 
     def refreshFeatureCards(self):
         while self.featureRow.count():
@@ -104,3 +145,53 @@ class projectPage(QWidget):
         layout.addWidget(title)
         layout.addWidget(body)
         return card
+
+    def createProjectCard(self, project):
+        card = CardWidget()
+        layout = QHBoxLayout(card)
+        layout.setContentsMargins(20, 20, 20, 20)
+
+        textLayout = QVBoxLayout()
+        title = SubtitleLabel(project.title.upper())
+        title.setFont(QFont("Segoe UI", 14))
+        desc = BodyLabel(project.description)
+        desc.setFont(QFont("Segoe UI", 11))
+        desc.setWordWrap(True)
+        textLayout.addWidget(title)
+        textLayout.addWidget(desc)
+
+        # Button row
+        btnRow = QVBoxLayout()
+        openBtn = PushButton("Open")
+        openBtn.setFixedWidth(80)
+        openBtn.clicked.connect(lambda checked=False, p=project: self.openProject(p))
+
+        editBtn = PushButton("Edit")
+        editBtn.setFixedWidth(80)
+        editBtn.clicked.connect(lambda checked=False, p=project: self.editProject(p))
+
+        btnRow.addWidget(openBtn)
+        btnRow.addWidget(editBtn)
+
+        layout.addLayout(textLayout)
+        layout.addStretch()
+        layout.addLayout(btnRow)
+
+        return card
+
+    def openProject(self, project):
+        mainWindow = self.window()
+        if hasattr(mainWindow, "projectViewPage"):
+            mainWindow.projectViewPage.setProject(project)
+            mainWindow.switchTo(mainWindow.projectViewPage)
+
+    def editProject(self, project):
+        dialog = EditProjectDialog(project, self.window())
+        if dialog.exec():
+            values = dialog.getValues()
+            project.editProject(
+                title=values["title"],
+                description=values["description"],
+                deadline=values["deadline"]
+            )
+            self.refreshProjects()

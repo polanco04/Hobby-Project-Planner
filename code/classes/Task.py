@@ -1,18 +1,9 @@
-from __future__ import annotations
-
 from datetime import datetime
 from typing import Any
-
+from .Reminder import Reminder
 
 class Task:
-    def __init__(
-        self,
-        taskId: int,
-        name: str,
-        description: str,
-        deadline: datetime,
-        estimatedTime: int,
-    ):
+    def __init__(self, name: str, description: str, deadline: datetime, estimatedTime: int):
         name = name.strip()
         description = description.strip()
 
@@ -22,14 +13,14 @@ class Task:
         if estimatedTime < 0:
             raise ValueError("Estimated time cannot be negative.")
 
-        self.taskId = taskId
+        self.taskId = None
         self.name = name
         self.description = description
         self.dateCreated = datetime.now()
         self.dateCompleted: datetime | None = None
         self.deadline = deadline
         self.estimatedTime = estimatedTime
-        self.reminders: list[Any] = []
+        self.reminders: list[Reminder] = []
         self.dependencies: list[Task] = []
 
     def markComplete(self) -> None:
@@ -38,7 +29,7 @@ class Task:
 
         self.dateCompleted = datetime.now()
 
-    def addDependency(self, task: Task) -> None:
+    def addDependency(self, task) -> None:
         if task is self:
             raise ValueError("A task cannot depend on itself.")
 
@@ -50,7 +41,7 @@ class Task:
 
         self.dependencies.append(task)
 
-    def removeDependency(self, task: Task) -> None:
+    def removeDependency(self, task) -> None:
         if task in self.dependencies:
             self.dependencies.remove(task)
 
@@ -61,14 +52,14 @@ class Task:
         return False
 
     def updateDetails(self, name: str, desc: str) -> None:
-        cleaned_name = name.strip()
-        cleaned_desc = desc.strip()
+        cleanedName = name.strip()
+        cleanedDesc = desc.strip()
 
-        if not cleaned_name:
+        if not cleanedName:
             raise ValueError("Task name cannot be empty.")
 
-        self.name = cleaned_name
-        self.description = cleaned_desc
+        self.name = cleanedName
+        self.description = cleanedDesc
 
     def addReminder(self, reminder: Any) -> None:
         self.reminders.append(reminder)

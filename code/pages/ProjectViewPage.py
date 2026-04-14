@@ -2,7 +2,6 @@
 ## This page will show the details of a specific project when selected within the
 ## Projects pages.
 
-
 ## NOTE: Comments are not done, still need documentation
 from PyQt6.QtWidgets import (
     QFrame,
@@ -266,7 +265,7 @@ class projectViewPage(QWidget):
         if hasattr(mainWindow, "switchTo") and hasattr(mainWindow, "projectPage"):
             mainWindow.switchTo(mainWindow.projectPage)
 
-
-
-
-    
+    def setProject(self, project):
+        self.project = project
+        self.projectTitle.setText(project.title)
+        self.projectDescription.setText(project.description)

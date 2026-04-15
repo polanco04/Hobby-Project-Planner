@@ -1,5 +1,6 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QSizePolicy
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QFont
 from qfluentwidgets import (
     BodyLabel, CardWidget, SubtitleLabel, TitleLabel, PrimaryPushButton, 
     HorizontalSeparator, IconWidget, InfoBar, InfoBarPosition, PushButton

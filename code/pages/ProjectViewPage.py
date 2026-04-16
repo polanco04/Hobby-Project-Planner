@@ -1,7 +1,6 @@
-## Project View Page 
+### Project View Page 
 ## This page will show the details of a specific project when selected within the
 ## Projects pages.
-
 
 ## NOTE: Comments are not done, still need documentation
 from PyQt6.QtWidgets import (
@@ -17,9 +16,6 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import QEvent, Qt
 from PyQt6.QtGui import QFont
 from qfluentwidgets import SubtitleLabel, isDarkTheme
-from .TaskPage import TaskPage
-
-
 
 class projectViewPage(QWidget):
     def __init__(self):
@@ -105,9 +101,7 @@ class projectViewPage(QWidget):
         # Content area that changes with the selected tab
         self.contentStack = QStackedWidget()
 
-        #self.tasksPage = self._createPlaceholderPage("Tasks section")
-        # Replacing the task Page place holder with the actual task page
-        self.tasksPage = TaskPage("Task Section")
+        self.tasksPage = self._createPlaceholderPage("Tasks section")
         self.milestonesPage = self._createPlaceholderPage("Milestones section")
         self.imagesPage = self._createPlaceholderPage("Images section")
         self.exportPage = self._createPlaceholderPage("Export section")
@@ -271,18 +265,7 @@ class projectViewPage(QWidget):
         if hasattr(mainWindow, "switchTo") and hasattr(mainWindow, "projectPage"):
             mainWindow.switchTo(mainWindow.projectPage)
 
-<<<<<<< Updated upstream
-
-
-
-    
-=======
     def setProject(self, project):
         self.project = project
         self.projectTitle.setText(project.title)
         self.projectDescription.setText(project.description)
-        self._refreshTaskLists()
-
-    
-    
->>>>>>> Stashed changes

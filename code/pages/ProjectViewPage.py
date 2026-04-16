@@ -7,11 +7,14 @@ from PyQt6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QPushButton,
     QSizePolicy,
     QStackedWidget,
     QWidget,
     QVBoxLayout,
+    QScrollArea,
+    QWidgetItem,
 )
 from PyQt6.QtCore import QEvent, Qt
 from PyQt6.QtGui import QFont
@@ -77,6 +80,8 @@ class projectViewPage(QWidget):
         self.tabsLayout.setSpacing(10)
         self.tabsLayout.setContentsMargins(8, 8, 8, 8)
 
+        
+
         # Four functional tab buttons
         self.taskTab = QPushButton("Tasks")
         self.milestonesTab = QPushButton("Milestones")
@@ -101,7 +106,8 @@ class projectViewPage(QWidget):
         # Content area that changes with the selected tab
         self.contentStack = QStackedWidget()
 
-        self.tasksPage = self._createPlaceholderPage("Tasks section")
+        self.taskPage = self._createTasksPage()
+       
         self.milestonesPage = self._createPlaceholderPage("Milestones section")
         self.imagesPage = self._createPlaceholderPage("Images section")
         self.exportPage = self._createPlaceholderPage("Export section")
@@ -218,6 +224,33 @@ class projectViewPage(QWidget):
             )
 
         return page
+    
+    def _createTasksPage(self):
+        page = QFrame()
+        page.setObjectName("contentFrame")
+
+        pageLayout = QVBoxLayout(page)
+        pageLayout.setContentsMargins(24, 24, 24, 24)
+        pageLayout.setSpacing(16)
+
+        self.taskInputWidget = QFrame()
+        self.taskInputWidget.setObjectName("taskInputWidget")
+        inputLayout = QHBoxLayout(self.taskInputWidget)
+        inputLayout.setContentsMargins(0, 0, 0, 0)
+        inputLayout.setSpacing(8)
+
+        self.taskInput = QLineEdit()
+        self.taskInput.setPlaceholderText("Add a new task...")
+
+        self.addTaskButton = QPushButton("Add Task")
+
+        inputLayout.addWidget(self.taskInput)
+        inputLayout.addWidget(self.addTaskButton)
+
+        
+
+
+
 
     def _setActiveTab(self, index):
         self.contentStack.setCurrentIndex(index)

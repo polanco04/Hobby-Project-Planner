@@ -22,12 +22,19 @@ class Task:
         self.estimatedTime = estimatedTime
         self.reminders: list[Reminder] = []
         self.dependencies: list[Task] = []
+        self.milestones: list = [] 
 
     def markComplete(self) -> None:
         if self.isBlocked():
             raise ValueError("Cannot complete a task while it is blocked by dependencies.")
-
         self.dateCompleted = datetime.now()
+
+        for milestone in self.milestones:
+            if not milestone.manuallyCompleted and milestone.getProgress() == 100.0:
+                milestone.manuallyCompleted = False
+
+    def unmarkComplete(self) -> None:
+        self.dateCompleted = None
 
     def addDependency(self, task) -> None:
         if task is self:
@@ -53,13 +60,12 @@ class Task:
 
     def updateDetails(self, name: str, desc: str) -> None:
         cleanedName = name.strip()
-        cleanedDesc = desc.strip()
 
         if not cleanedName:
             raise ValueError("Task name cannot be empty.")
 
         self.name = cleanedName
-        self.description = cleanedDesc
+        self.description = desc.strip()
 
     def addReminder(self, reminder: Any) -> None:
         self.reminders.append(reminder)
@@ -74,5 +80,6 @@ class Task:
             "deadline": self.deadline,
             "estimatedTime": self.estimatedTime,
             "reminders": self.reminders,
+            "milestones": [m.milestoneId for m in self.milestones],
             "dependencies": [dependency.taskId for dependency in self.dependencies],
         }

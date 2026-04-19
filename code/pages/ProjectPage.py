@@ -59,7 +59,6 @@ class projectPage(QWidget):
         headerRow.addWidget(btn)
         mainLayout.addLayout(headerRow)
 
-        # Swappable projects area ← this was missing
         self.projectsContainer = QVBoxLayout()
         self.projectsContainer.setSpacing(10)
         mainLayout.addLayout(self.projectsContainer)
@@ -73,7 +72,7 @@ class projectPage(QWidget):
 
         outer.addWidget(container)
 
-        self.refreshProjects()  # must be after projectsContainer is defined
+        self.refreshProjects()
 
     def showEvent(self, event):
         super().showEvent(event)
@@ -161,7 +160,6 @@ class projectPage(QWidget):
         textLayout.addWidget(title)
         textLayout.addWidget(desc)
 
-        # Button row
         btnRow = QVBoxLayout()
         openBtn = PushButton("Open")
         openBtn.setFixedWidth(80)

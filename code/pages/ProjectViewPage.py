@@ -142,6 +142,23 @@ class projectViewPage(QWidget):
                     "border-radius: 16px; font-weight: 600; padding: 8px 18px; }"
                     "QPushButton:hover { background-color: rgba(255, 255, 255, 0.10); }"
                 )
+            if isDarkTheme():
+                self.addTaskButton.setStyleSheet(
+                    "QPushButton { background-color: transparent; color: #FFFFFF; border: 1px solid #FFFFFF; border-radius: 6px; font-size: 14px; }"
+                    "QPushButton: hover { background-color: rgba(255, 255, 255, 0.10);}"
+                )
+                self.taskList.setStyleSheet(
+                    "QListWidget { border: none; background: transparent; color: #FFFFFF; }"
+                )
+            
+            else: 
+                self.addTaskButton.setStyleSheet(
+                    "QPushButton { background-color: transparent; color: #202020; border: 1px solid #202020; border-radius: 6px; font-size: 14px; }"
+                    "QPushButton: hover { background-color: rgba(32, 32, 32, 0.10);}"
+                )
+                self.taskList.setStyleSheet(
+                    "QListWidget { border: none; background: transparent; color: #202020; }"
+                )
 
         if hasattr(self, "summaryCard"):
             self.summaryCard.setStyleSheet(
@@ -206,6 +223,21 @@ class projectViewPage(QWidget):
         rowLayout.setSpacing(10)
 
         checkbox = QCheckBox(task.name)
+        #Style the checkbox based on isDarkTheme
+        if isDarkTheme():
+            checkbox.setStyleSheet(
+                "QCheckBox { color: #FFFFFF;}"
+                "QCheckBox:: indicator { width: 18px; height: 18px; border: 2px solid #FFFFFF; border-radius: 4px; background: transparent;}"
+                "QCheckBox:: indicator:checked { background-color: #FFFFFF;}"
+            )
+        else:
+            checkbox.setStyleSheet (
+                "QCheckBox { color: #202020;}"
+                "QCheckBox:: indicator { width: 18px; height: 18px; border: 2px solid #202020; border-radius: 4px; background: transparent;}"
+                "QCheckBox:: indicator:checked { background-color: #202020;}"
+            )
+
+
         checkFont = QFont()
         checkFont.setPointSize(10)
         checkbox.setFont(checkFont)

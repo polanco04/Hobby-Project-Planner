@@ -142,29 +142,34 @@ class projectViewPage(QWidget):
                     "border-radius: 16px; font-weight: 600; padding: 8px 18px; }"
                     "QPushButton:hover { background-color: rgba(255, 255, 255, 0.10); }"
                 )
-            if isDarkTheme():
-                self.addTaskButton.setStyleSheet(
-                    "QPushButton { background-color: transparent; color: #FFFFFF; border: 1px solid #FFFFFF; border-radius: 6px; font-size: 14px; }"
-                    "QPushButton: hover { background-color: rgba(255, 255, 255, 0.10);}"
-                )
-                self.taskList.setStyleSheet(
-                    "QListWidget { border: none; background: transparent; color: #FFFFFF; }"
-                )
             
-            else: 
-                self.addTaskButton.setStyleSheet(
-                    "QPushButton { background-color: transparent; color: #202020; border: 1px solid #202020; border-radius: 6px; font-size: 14px; }"
-                    "QPushButton: hover { background-color: rgba(32, 32, 32, 0.10);}"
-                )
-                self.taskList.setStyleSheet(
-                    "QListWidget { border: none; background: transparent; color: #202020; }"
-                )
 
         if hasattr(self, "summaryCard"):
             self.summaryCard.setStyleSheet(
                 "QFrame { background-color: #3A3A3A; border-radius: 10px; }"
                 if isDarkTheme() else
                 "QFrame { background-color: #EFEFEF; border-radius: 10px; }"
+
+            
+            )
+
+        if isDarkTheme():
+            
+            self.addTaskButton.setStyleSheet(
+                "QPushButton { background-color: transparent; color: #FFFFFF; border: 1px solid #FFFFFF; border-radius: 6px; font-size: 14px; }"
+                "QPushButton:hover { background-color: rgba(255, 255, 255, 0.10);}"
+                )
+            self.taskList.setStyleSheet(
+                "QListWidget { border: none; background: transparent; color: #FFFFFF; }"
+                )
+                
+        else: 
+            self.addTaskButton.setStyleSheet(
+                "QPushButton { background-color: transparent; color: #202020; border: 1px solid #202020; border-radius: 6px; font-size: 14px; }"
+                "QPushButton:hover { background-color: rgba(32, 32, 32, 0.10);}"
+                )
+            self.taskList.setStyleSheet(
+                "QListWidget { border: none; background: transparent; color: #202020; }"
             )
 
     # ─── Tasks Tab ────────────────────────────────────────────────────────────
@@ -223,20 +228,22 @@ class projectViewPage(QWidget):
         rowLayout.setSpacing(10)
 
         checkbox = QCheckBox(task.name)
-        #Style the checkbox based on isDarkTheme
+
         if isDarkTheme():
             checkbox.setStyleSheet(
-                "QCheckBox { color: #FFFFFF;}"
-                "QCheckBox:: indicator { width: 18px; height: 18px; border: 2px solid #FFFFFF; border-radius: 4px; background: transparent;}"
-                "QCheckBox:: indicator:checked { background-color: #FFFFFF;}"
-            )
-        else:
-            checkbox.setStyleSheet (
-                "QCheckBox { color: #202020;}"
-                "QCheckBox:: indicator { width: 18px; height: 18px; border: 2px solid #202020; border-radius: 4px; background: transparent;}"
-                "QCheckBox:: indicator:checked { background-color: #202020;}"
+                "QCheckBox { color: #FFFFFF; font-weight: 500; }"
+                "QCheckBox::indicator { width: 18px; height: 18px; border: 2px solid #FFFFFF; border-radius: 4px; background: transparent; }"
+                "QCheckBox::indicator:checked { background-color: #FFFFFF; }"
+
             )
 
+        else:
+            checkbox.setStyleSheet(
+                "QCheckBox { color: #202020; font-weight: 500; }"
+                "QCheckBox::indicator { width: 18px; height: 18px; border: 2px solid #202020; border-radius: 4px; background: transparent; }"
+                "QCheckBox::indicator:checked { background-color: #202020; }"
+
+            )
 
         checkFont = QFont()
         checkFont.setPointSize(10)
@@ -257,7 +264,6 @@ class projectViewPage(QWidget):
                     t.unmarkComplete()
                     font.setStrikeOut(False)
                 cb.setFont(font)
-                # Refresh milestones in case any auto-completed
                 self.refreshMilestoneList()
             except Exception as e:
                 InfoBar.warning(title="Couldn't update task", content=str(e), parent=self,
@@ -268,28 +274,39 @@ class projectViewPage(QWidget):
 
         checkbox.stateChanged.connect(onChecked)
 
-        # Assign to milestone button
         assignBtn = QPushButton("+ Milestone")
         assignBtn.setFixedHeight(28)
         assignBtn.setCursor(Qt.CursorShape.PointingHandCursor)
-        assignBtn.setStyleSheet(
-            "QPushButton { border: 1px solid #AAAAAA; border-radius: 6px; padding: 2px 8px; font-size: 11px; background: transparent; }"
-            "QPushButton:hover { background: rgba(0,0,0,0.05); }"
-        )
+
+
+        if isDarkTheme():
+            assignBtn.setStyleSheet(
+                "QPushButton { color: #FFFFFF; border: 1px solid #CFCFCF; border-radius: 6px; padding: 2px 8px; font-size: 11px; font-weight: 600; background: transparent; }"
+                "QPushButton:hover { background: rgba(255, 255, 255, 0.10); }"
+            )
+
+        else:
+            assignBtn.setStyleSheet(
+                "QPushButton { color: #202020; border: 1px solid #909090; border-radius: 6px; padding: 2px 8px; font-size: 11px; font-weight: 600; background: transparent; }"
+                "QPushButton:hover { background: rgba(32, 32, 32, 0.08); }"
+
+            )
+        
         assignBtn.clicked.connect(lambda checked=False, t=task: self.showAssignToMilestoneDialog(t))
 
-        # Show which milestones this task belongs to
-        self.taskMilestoneLabel = QLabel()
-        self.updateTaskMilestoneLabel(task, self.taskMilestoneLabel)
-        self.taskMilestoneLabel.setStyleSheet("color: #888888; font-size: 10px;")
+        milestoneLabel = QLabel()
+        self.updateTaskMilestoneLabel(task, milestoneLabel)
+        if isDarkTheme():
+            milestoneLabel.setStyleSheet("color: #C0C0C0; font-size: 10px;")
+        else:
+            milestoneLabel.setStyleSheet("color: #606060; font-size: 10px;")
 
         rightLayout = QVBoxLayout()
         rightLayout.setSpacing(2)
         rightLayout.addWidget(assignBtn)
-        rightLayout.addWidget(self.taskMilestoneLabel)
+        rightLayout.addWidget(milestoneLabel)
 
-        # Store label ref on task for later refresh
-        task._milestoneLabel = self.taskMilestoneLabel
+        task._milestoneLabel = milestoneLabel
 
         rowLayout.addWidget(checkbox)
         rowLayout.addStretch()
@@ -428,6 +445,16 @@ class projectViewPage(QWidget):
 
         checkbox = QCheckBox()
         checkbox.setChecked(milestone.isReached())
+        if isDarkTheme():
+            checkbox.setStyleSheet(
+                "QCheckBox::indicator { width: 18px; height: 18px; border: 2px solid #FFFFFF; border-radius: 4px; background: transparent; }"
+                "QCheckBox::indicator:checked { background-color: #FFFFFF; }"
+            )
+        else:
+            checkbox.setStyleSheet(
+                "QCheckBox::indicator { width: 18px; height: 18px; border: 2px solid #202020; border-radius: 4px; background: transparent; }"
+                "QCheckBox::indicator:checked { background-color: #202020; }"
+            )
 
         def onChecked(state, m=milestone):
             if state == Qt.CheckState.Checked.value:
@@ -447,28 +474,35 @@ class projectViewPage(QWidget):
         smallFont.setPointSize(9)
         dateLabel.setFont(smallFont)
 
-        # Show linked tasks
         taskNames = ", ".join(t.name for t in milestone.tasks) if milestone.tasks else "No tasks linked"
         tasksLabel = QLabel(f"Tasks: {taskNames}")
-        tasksLabel.setStyleSheet("color: #888888; font-size: 10px;")
-
-        # Progress
         progressLabel = QLabel(f"{milestone.getProgress():.0f}% complete")
-        progressLabel.setStyleSheet("color: #888888; font-size: 10px;")
+
+        if isDarkTheme():
+            tasksLabel.setStyleSheet("color: #C0C0C0; font-size: 10px;")
+            progressLabel.setStyleSheet("color: #C0C0C0; font-size: 10px;")
+        else:
+            tasksLabel.setStyleSheet("color: #606060; font-size: 10px;")
+            progressLabel.setStyleSheet("color: #606060; font-size: 10px;")
 
         infoLayout.addWidget(titleLabel)
         infoLayout.addWidget(dateLabel)
         infoLayout.addWidget(tasksLabel)
         infoLayout.addWidget(progressLabel)
 
-        # Assign tasks button
         assignBtn = QPushButton("+ Tasks")
         assignBtn.setFixedHeight(28)
         assignBtn.setCursor(Qt.CursorShape.PointingHandCursor)
-        assignBtn.setStyleSheet(
-            "QPushButton { border: 1px solid #AAAAAA; border-radius: 6px; padding: 2px 8px; font-size: 11px; background: transparent; }"
-            "QPushButton:hover { background: rgba(0,0,0,0.05); }"
-        )
+        if isDarkTheme():
+            assignBtn.setStyleSheet(
+                "QPushButton { color: #FFFFFF; border: 1px solid #CFCFCF; border-radius: 6px; padding: 2px 8px; font-size: 11px; background: transparent; }"
+                "QPushButton:hover { background: rgba(255, 255, 255, 0.10); }"
+            )
+        else:
+            assignBtn.setStyleSheet(
+                "QPushButton { color: #202020; border: 1px solid #909090; border-radius: 6px; padding: 2px 8px; font-size: 11px; background: transparent; }"
+                "QPushButton:hover { background: rgba(32, 32, 32, 0.08); }"
+            )
         assignBtn.clicked.connect(lambda checked=False, m=milestone: self.showAssignTasksDialog(m))
 
         rowLayout.addWidget(checkbox)
@@ -716,6 +750,7 @@ class projectViewPage(QWidget):
             self.refreshExportSummary()
         self.applyThemeColors()
 
+    # Stopped here
     def changeEvent(self, event):
         super().changeEvent(event)
         if event.type() in (QEvent.Type.PaletteChange, QEvent.Type.StyleChange):
@@ -723,6 +758,10 @@ class projectViewPage(QWidget):
                 currentIndex = self.contentStack.currentIndex()
                 self.applyThemeColors()
                 self.setActiveTab(currentIndex)
+                # Refresh task and milestone lists to update according to the theme
+                self.refreshTaskList()
+                self.refreshMilestoneList()
+
 
     def showEvent(self, event):
         super().showEvent(event)

@@ -104,8 +104,8 @@ class homePage(QWidget):
 
         bottomRow = QHBoxLayout()
         textLayout = QVBoxLayout()
-        title = SubtitleLabel(project.title.upper())
-        desc = BodyLabel(project.description.upper())
+        title = SubtitleLabel(project.title)
+        desc = BodyLabel(project.description)
         desc.setWordWrap(True)
         textLayout.addWidget(title)
         textLayout.addWidget(desc)
@@ -126,8 +126,8 @@ class homePage(QWidget):
         layout.setContentsMargins(20, 20, 20, 20)
 
         textLayout = QVBoxLayout()
-        title = SubtitleLabel(project.title.upper())
-        desc = BodyLabel(project.description.upper())
+        title = SubtitleLabel(project.title)
+        desc = BodyLabel(project.description)
         desc.setWordWrap(True)
         textLayout.addWidget(title)
         textLayout.addWidget(desc)

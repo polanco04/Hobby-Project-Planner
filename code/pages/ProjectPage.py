@@ -83,7 +83,7 @@ class projectPage(QWidget):
         if dialog.exec():
             values = dialog.getValues()
             try:
-                project = self.hobbyist.createProject(
+                self.hobbyist.createProject(
                     values["title"],
                     values["description"],
                     values["deadline"]
@@ -154,11 +154,19 @@ class projectPage(QWidget):
         textLayout = QVBoxLayout()
         title = SubtitleLabel(project.title.upper())
         title.setFont(QFont("Segoe UI", 14))
+        
         desc = BodyLabel(project.description)
         desc.setFont(QFont("Segoe UI", 11))
         desc.setWordWrap(True)
+        
         textLayout.addWidget(title)
         textLayout.addWidget(desc)
+
+        if hasattr(project, 'deadline') and project.deadline:
+            dateLabel = BodyLabel(f"Deadline: {project.deadline}")
+            dateLabel.setFont(QFont("Segoe UI", 10))
+            dateLabel.setStyleSheet("color: gray;") 
+            textLayout.addWidget(dateLabel)
 
         btnRow = QVBoxLayout()
         openBtn = PushButton("Open")

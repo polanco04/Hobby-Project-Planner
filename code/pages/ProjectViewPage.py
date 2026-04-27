@@ -4,21 +4,26 @@
 from PyQt6.QtWidgets import (
     QFrame, QHBoxLayout, QLabel, QListWidget, QListWidgetItem,
     QPushButton, QSizePolicy, QStackedWidget, QWidget, QVBoxLayout,
-    QCheckBox, QFileDialog, QGridLayout, QScrollArea, QDateEdit,
-    QDialog, QDialogButtonBox, QLineEdit, QListView,
+    QCheckBox, QFileDialog, QGridLayout, QDateEdit,
+    QDialog, QDialogButtonBox, QLineEdit, 
 )
 from PyQt6.QtPrintSupport import QPrinter
-from PyQt6.QtCore import QEvent, Qt, QDate
-from PyQt6.QtGui import QFont, QPixmap, QPainter, QPageSize
+from PyQt6.QtCore import QEvent, Qt, QDate, QRectF, QSizeF, QMarginsF
+from PyQt6.QtGui import (
+    QFont, QPixmap, QPainter, QPageSize, QColor, 
+    QPainterPath, QPen, QImage, QPageSize
+    )
+from PyQt6.QtPrintSupport import QPrinter
 from qfluentwidgets import (
     SubtitleLabel, BodyLabel, StrongBodyLabel, CardWidget,
-    PushButton, PrimaryPushButton, LineEdit, InfoBar, InfoBarPosition, isDarkTheme,
+    PrimaryPushButton, LineEdit, InfoBar, InfoBarPosition, isDarkTheme,
 )
 from classes.Task import Task
 from classes.Milestone import Milestone
 from classes.Media import Media
 from datetime import datetime
-
+import json
+from pathlib import Path
 
 class projectViewPage(QWidget):
     def __init__(self):
@@ -106,6 +111,27 @@ class projectViewPage(QWidget):
 
     # ─── Theme ────────────────────────────────────────────────────────────────
 
+    def _assignBtnStyle(self):
+        if isDarkTheme():
+            return (
+                "QPushButton { color: #FFFFFF; border: 1px solid #CFCFCF; border-radius: 6px;"
+                "padding: 2px 8px; font-size: 11px; background: transparent; }"
+                "QPushButton:hover { background: rgba(255,255,255,0.10); }"
+            )
+        else:
+            return (
+                "QPushButton { color: #202020; border: 1px solid #909090; border-radius: 6px;"
+                "padding: 2px 8px; font-size: 11px; background: transparent; }"
+                "QPushButton:hover { background: rgba(32,32,32,0.08); }"
+            )
+
+    def _deleteBtnStyle(self):
+        return (
+            "QPushButton { color: #CC4444; border: 1px solid #CC4444; border-radius: 6px;"
+            "font-size: 11px; background: transparent; }"
+            "QPushButton:hover { background: rgba(204,68,68,0.10); }"
+        )
+
     def applyThemeColors(self):
         if isDarkTheme():
             self.backButton.setStyleSheet(
@@ -142,23 +168,6 @@ class projectViewPage(QWidget):
                     "border-radius: 16px; font-weight: 600; padding: 8px 18px; }"
                     "QPushButton:hover { background-color: rgba(255, 255, 255, 0.10); }"
                 )
-            if isDarkTheme():
-                self.addTaskButton.setStyleSheet(
-                    "QPushButton { background-color: transparent; color: #FFFFFF; border: 1px solid #FFFFFF; border-radius: 6px; font-size: 14px; }"
-                    "QPushButton: hover { background-color: rgba(255, 255, 255, 0.10);}"
-                )
-                self.taskList.setStyleSheet(
-                    "QListWidget { border: none; background: transparent; color: #FFFFFF; }"
-                )
-            
-            else: 
-                self.addTaskButton.setStyleSheet(
-                    "QPushButton { background-color: transparent; color: #202020; border: 1px solid #202020; border-radius: 6px; font-size: 14px; }"
-                    "QPushButton: hover { background-color: rgba(32, 32, 32, 0.10);}"
-                )
-                self.taskList.setStyleSheet(
-                    "QListWidget { border: none; background: transparent; color: #202020; }"
-                )
 
         if hasattr(self, "summaryCard"):
             self.summaryCard.setStyleSheet(
@@ -167,13 +176,34 @@ class projectViewPage(QWidget):
                 "QFrame { background-color: #EFEFEF; border-radius: 10px; }"
             )
 
+        if hasattr(self, "addTaskButton"):
+            if isDarkTheme():
+                self.addTaskButton.setStyleSheet(
+                    "QPushButton { background-color: transparent; color: #FFFFFF; border: 1px solid #FFFFFF; border-radius: 6px; font-size: 14px; }"
+                    "QPushButton:hover { background-color: rgba(255, 255, 255, 0.10); }"
+                )
+                self.taskList.setStyleSheet(
+                    "QListWidget { border: none; background: transparent; color: #FFFFFF; }"
+                )
+            else:
+                self.addTaskButton.setStyleSheet(
+                    "QPushButton { background-color: transparent; color: #202020; border: 1px solid #202020; border-radius: 6px; font-size: 14px; }"
+                    "QPushButton:hover { background-color: rgba(32, 32, 32, 0.10); }"
+                )
+                self.taskList.setStyleSheet(
+                    "QListWidget { border: none; background: transparent; color: #202020; }"
+                )
+
+        if hasattr(self, "milestoneDateInput"):
+            self.styleDateInput()
+
     # ─── Tasks Tab ────────────────────────────────────────────────────────────
 
     def createTasksTab(self):
         page = CardWidget()
         pageLayout = QVBoxLayout(page)
-        pageLayout.setContentsMargins(24, 24, 24, 24)
-        pageLayout.setSpacing(16)
+        pageLayout.setContentsMargins(28, 28, 28, 28)
+        pageLayout.setSpacing(20)
 
         inputLayout = QHBoxLayout()
         inputLayout.setSpacing(8)
@@ -190,7 +220,7 @@ class projectViewPage(QWidget):
         inputLayout.addWidget(self.addTaskButton)
 
         self.taskList = QListWidget()
-        self.taskList.setSpacing(6)
+        self.taskList.setSpacing(10)
         self.taskList.setStyleSheet("QListWidget { border: none; background: transparent; }")
 
         pageLayout.addLayout(inputLayout)
@@ -223,20 +253,18 @@ class projectViewPage(QWidget):
         rowLayout.setSpacing(10)
 
         checkbox = QCheckBox(task.name)
-        #Style the checkbox based on isDarkTheme
         if isDarkTheme():
             checkbox.setStyleSheet(
-                "QCheckBox { color: #FFFFFF;}"
-                "QCheckBox:: indicator { width: 18px; height: 18px; border: 2px solid #FFFFFF; border-radius: 4px; background: transparent;}"
-                "QCheckBox:: indicator:checked { background-color: #FFFFFF;}"
+                "QCheckBox { color: #FFFFFF; font-weight: 500; }"
+                "QCheckBox::indicator { width: 18px; height: 18px; border: 2px solid #FFFFFF; border-radius: 4px; background: transparent; }"
+                "QCheckBox::indicator:checked { background-color: #FFFFFF; }"
             )
         else:
-            checkbox.setStyleSheet (
-                "QCheckBox { color: #202020;}"
-                "QCheckBox:: indicator { width: 18px; height: 18px; border: 2px solid #202020; border-radius: 4px; background: transparent;}"
-                "QCheckBox:: indicator:checked { background-color: #202020;}"
+            checkbox.setStyleSheet(
+                "QCheckBox { color: #202020; font-weight: 500; }"
+                "QCheckBox::indicator { width: 18px; height: 18px; border: 2px solid #202020; border-radius: 4px; background: transparent; }"
+                "QCheckBox::indicator:checked { background-color: #202020; }"
             )
-
 
         checkFont = QFont()
         checkFont.setPointSize(10)
@@ -257,7 +285,6 @@ class projectViewPage(QWidget):
                     t.unmarkComplete()
                     font.setStrikeOut(False)
                 cb.setFont(font)
-                # Refresh milestones in case any auto-completed
                 self.refreshMilestoneList()
             except Exception as e:
                 InfoBar.warning(title="Couldn't update task", content=str(e), parent=self,
@@ -268,28 +295,41 @@ class projectViewPage(QWidget):
 
         checkbox.stateChanged.connect(onChecked)
 
-        # Assign to milestone button
         assignBtn = QPushButton("+ Milestone")
         assignBtn.setFixedHeight(28)
         assignBtn.setCursor(Qt.CursorShape.PointingHandCursor)
-        assignBtn.setStyleSheet(
-            "QPushButton { border: 1px solid #AAAAAA; border-radius: 6px; padding: 2px 8px; font-size: 11px; background: transparent; }"
-            "QPushButton:hover { background: rgba(0,0,0,0.05); }"
-        )
+        assignBtn.setStyleSheet(self._assignBtnStyle())
         assignBtn.clicked.connect(lambda checked=False, t=task: self.showAssignToMilestoneDialog(t))
 
-        # Show which milestones this task belongs to
-        self.taskMilestoneLabel = QLabel()
-        self.updateTaskMilestoneLabel(task, self.taskMilestoneLabel)
-        self.taskMilestoneLabel.setStyleSheet("color: #888888; font-size: 10px;")
+        editBtn = QPushButton("✎")
+        editBtn.setFixedSize(28, 28)
+        editBtn.setCursor(Qt.CursorShape.PointingHandCursor)
+        editBtn.setStyleSheet(self._assignBtnStyle())
+        editBtn.clicked.connect(lambda checked=False, t=task: self.editTask(t))
+
+        deleteBtn = QPushButton("✕")
+        deleteBtn.setFixedSize(28, 28)
+        deleteBtn.setCursor(Qt.CursorShape.PointingHandCursor)
+        deleteBtn.setStyleSheet(self._deleteBtnStyle())
+        deleteBtn.clicked.connect(lambda checked=False, t=task: self.deleteTask(t))
+
+        milestoneLabel = QLabel()
+        self.updateTaskMilestoneLabel(task, milestoneLabel)
+        milestoneLabel.setStyleSheet(
+            f"color: {'#C0C0C0' if isDarkTheme() else '#606060'}; font-size: 10px;"
+        )
+        task._milestoneLabel = milestoneLabel
+
+        btnRow = QHBoxLayout()
+        btnRow.setSpacing(4)
+        btnRow.addWidget(assignBtn)
+        btnRow.addWidget(editBtn)
+        btnRow.addWidget(deleteBtn)
 
         rightLayout = QVBoxLayout()
-        rightLayout.setSpacing(2)
-        rightLayout.addWidget(assignBtn)
-        rightLayout.addWidget(self.taskMilestoneLabel)
-
-        # Store label ref on task for later refresh
-        task._milestoneLabel = self.taskMilestoneLabel
+        rightLayout.setSpacing(4)
+        rightLayout.addLayout(btnRow)
+        rightLayout.addWidget(milestoneLabel)
 
         rowLayout.addWidget(checkbox)
         rowLayout.addStretch()
@@ -297,6 +337,43 @@ class projectViewPage(QWidget):
 
         item.setSizeHint(rowWidget.sizeHint())
         self.taskList.setItemWidget(item, rowWidget)
+
+    def editTask(self, task: Task):
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Edit Task")
+        dialog.setFixedSize(360, 120)
+        layout = QVBoxLayout(dialog)
+
+        nameInput = QLineEdit(task.name)
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+
+        layout.addWidget(QLabel("Task name:"))
+        layout.addWidget(nameInput)
+        layout.addWidget(buttons)
+
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        newName = nameInput.text().strip()
+        if newName:
+            task.updateDetails(newName, task.description)
+            self.refreshTaskList()
+
+    def deleteTask(self, task: Task):
+        try:
+            for milestone in self.project.milestones:
+                if task in milestone.tasks:
+                    milestone.removeTask(task)
+            self.project.removeTask(task.taskId)
+            self.refreshTaskList()
+            self.refreshMilestoneList()
+        except Exception as e:
+            InfoBar.warning(title="Couldn't delete task", content=str(e),
+                            parent=self, duration=3000, position=InfoBarPosition.TOP)
 
     def updateTaskMilestoneLabel(self, task: Task, label: QLabel):
         if task.milestones:
@@ -329,7 +406,9 @@ class projectViewPage(QWidget):
 
         layout.addWidget(listWidget)
 
-        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
         buttons.accepted.connect(dialog.accept)
         buttons.rejected.connect(dialog.reject)
         layout.addWidget(buttons)
@@ -345,12 +424,10 @@ class projectViewPage(QWidget):
 
         try:
             if milestone in task.milestones:
-                # Already assigned — unassign
                 milestone.removeTask(task)
             else:
                 milestone.addTask(task)
 
-            # Update the label on the task row
             if hasattr(task, "_milestoneLabel"):
                 self.updateTaskMilestoneLabel(task, task._milestoneLabel)
 
@@ -364,8 +441,8 @@ class projectViewPage(QWidget):
     def createMilestonesTab(self):
         page = CardWidget()
         pageLayout = QVBoxLayout(page)
-        pageLayout.setContentsMargins(24, 24, 24, 24)
-        pageLayout.setSpacing(16)
+        pageLayout.setContentsMargins(28, 28, 28, 28)
+        pageLayout.setSpacing(20)
 
         inputLayout = QHBoxLayout()
         inputLayout.setSpacing(8)
@@ -377,11 +454,10 @@ class projectViewPage(QWidget):
         self.milestoneDateInput = QDateEdit()
         self.milestoneDateInput.setCalendarPopup(True)
         self.milestoneDateInput.setDate(QDate.currentDate())
+        self.milestoneDateInput.setMinimumDate(QDate.currentDate())
         self.milestoneDateInput.setDisplayFormat("MM/dd/yyyy")
         self.milestoneDateInput.setFixedWidth(160)
-        self.milestoneDateInput.setStyleSheet(
-            "QDateEdit { border: 1px solid #CCCCCC; border-radius: 6px; padding: 6px 10px; font-size: 13px; }"
-        )
+        self.styleDateInput()
 
         self.addMilestoneButton = PrimaryPushButton("+")
         self.addMilestoneButton.setFixedSize(40, 40)
@@ -392,7 +468,7 @@ class projectViewPage(QWidget):
         inputLayout.addWidget(self.addMilestoneButton)
 
         self.milestoneList = QListWidget()
-        self.milestoneList.setSpacing(6)
+        self.milestoneList.setSpacing(10)
         self.milestoneList.setStyleSheet("QListWidget { border: none; background: transparent; }")
 
         pageLayout.addLayout(inputLayout)
@@ -428,6 +504,16 @@ class projectViewPage(QWidget):
 
         checkbox = QCheckBox()
         checkbox.setChecked(milestone.isReached())
+        if isDarkTheme():
+            checkbox.setStyleSheet(
+                "QCheckBox::indicator { width: 18px; height: 18px; border: 2px solid #FFFFFF; border-radius: 4px; background: transparent; }"
+                "QCheckBox::indicator:checked { background-color: #FFFFFF; }"
+            )
+        else:
+            checkbox.setStyleSheet(
+                "QCheckBox::indicator { width: 18px; height: 18px; border: 2px solid #202020; border-radius: 4px; background: transparent; }"
+                "QCheckBox::indicator:checked { background-color: #202020; }"
+            )
 
         def onChecked(state, m=milestone):
             if state == Qt.CheckState.Checked.value:
@@ -447,37 +533,108 @@ class projectViewPage(QWidget):
         smallFont.setPointSize(9)
         dateLabel.setFont(smallFont)
 
-        # Show linked tasks
         taskNames = ", ".join(t.name for t in milestone.tasks) if milestone.tasks else "No tasks linked"
         tasksLabel = QLabel(f"Tasks: {taskNames}")
-        tasksLabel.setStyleSheet("color: #888888; font-size: 10px;")
-
-        # Progress
         progressLabel = QLabel(f"{milestone.getProgress():.0f}% complete")
-        progressLabel.setStyleSheet("color: #888888; font-size: 10px;")
+
+        if isDarkTheme():
+            tasksLabel.setStyleSheet("color: #C0C0C0; font-size: 10px;")
+            progressLabel.setStyleSheet("color: #C0C0C0; font-size: 10px;")
+        else:
+            tasksLabel.setStyleSheet("color: #606060; font-size: 10px;")
+            progressLabel.setStyleSheet("color: #606060; font-size: 10px;")
 
         infoLayout.addWidget(titleLabel)
         infoLayout.addWidget(dateLabel)
         infoLayout.addWidget(tasksLabel)
         infoLayout.addWidget(progressLabel)
 
-        # Assign tasks button
         assignBtn = QPushButton("+ Tasks")
         assignBtn.setFixedHeight(28)
         assignBtn.setCursor(Qt.CursorShape.PointingHandCursor)
-        assignBtn.setStyleSheet(
-            "QPushButton { border: 1px solid #AAAAAA; border-radius: 6px; padding: 2px 8px; font-size: 11px; background: transparent; }"
-            "QPushButton:hover { background: rgba(0,0,0,0.05); }"
-        )
+        assignBtn.setStyleSheet(self._assignBtnStyle())
         assignBtn.clicked.connect(lambda checked=False, m=milestone: self.showAssignTasksDialog(m))
+
+        editBtn = QPushButton("✎")
+        editBtn.setFixedSize(28, 28)
+        editBtn.setCursor(Qt.CursorShape.PointingHandCursor)
+        editBtn.setStyleSheet(self._assignBtnStyle())
+        editBtn.clicked.connect(lambda checked=False, m=milestone: self.editMilestone(m))
+
+        deleteBtn = QPushButton("✕")
+        deleteBtn.setFixedSize(28, 28)
+        deleteBtn.setCursor(Qt.CursorShape.PointingHandCursor)
+        deleteBtn.setStyleSheet(self._deleteBtnStyle())
+        deleteBtn.clicked.connect(lambda checked=False, m=milestone: self.deleteMilestone(m))
+
+        btnRow = QHBoxLayout()
+        btnRow.setSpacing(4)
+        btnRow.addWidget(assignBtn)
+        btnRow.addWidget(editBtn)
+        btnRow.addWidget(deleteBtn)
+
+        btnCol = QVBoxLayout()
+        btnCol.setSpacing(4)
+        btnCol.addLayout(btnRow)
 
         rowLayout.addWidget(checkbox)
         rowLayout.addLayout(infoLayout)
         rowLayout.addStretch()
-        rowLayout.addWidget(assignBtn, alignment=Qt.AlignmentFlag.AlignTop)
+        rowLayout.addLayout(btnCol)
 
         item.setSizeHint(rowWidget.sizeHint())
         self.milestoneList.setItemWidget(item, rowWidget)
+
+    def editMilestone(self, milestone: Milestone):
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Edit Milestone")
+        dialog.setFixedSize(360, 180)
+        layout = QVBoxLayout(dialog)
+
+        nameInput = QLineEdit(milestone.name)
+
+        dateEdit = QDateEdit()
+        dateEdit.setCalendarPopup(True)
+        dateEdit.setDisplayFormat("MM/dd/yyyy")
+        self.milestoneDateInput.setMinimumDate(QDate.currentDate())
+        dateEdit.setDate(QDate(
+            milestone.deadline.year,
+            milestone.deadline.month,
+            milestone.deadline.day
+        ))
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+
+        layout.addWidget(QLabel("Name:"))
+        layout.addWidget(nameInput)
+        layout.addWidget(QLabel("Deadline:"))
+        layout.addWidget(dateEdit)
+        layout.addWidget(buttons)
+
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        newName = nameInput.text().strip()
+        if newName:
+            milestone.name = newName
+        qdate = dateEdit.date()
+        milestone.deadline = datetime(qdate.year(), qdate.month(), qdate.day())
+        self.refreshMilestoneList()
+
+    def deleteMilestone(self, milestone: Milestone):
+        try:
+            for task in list(milestone.tasks):
+                milestone.removeTask(task)
+            self.project.removeMilestone(milestone.milestoneId)
+            self.refreshMilestoneList()
+            self.refreshTaskList()
+        except Exception as e:
+            InfoBar.warning(title="Couldn't delete milestone", content=str(e),
+                            parent=self, duration=3000, position=InfoBarPosition.TOP)
 
     def showAssignTasksDialog(self, milestone: Milestone):
         if not self.project.tasks:
@@ -501,7 +658,9 @@ class projectViewPage(QWidget):
 
         layout.addStretch()
 
-        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
         buttons.accepted.connect(dialog.accept)
         buttons.rejected.connect(dialog.reject)
         layout.addWidget(buttons)
@@ -509,7 +668,6 @@ class projectViewPage(QWidget):
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return
 
-        # Apply changes
         for cb in checkboxes:
             task = cb.property("task")
             shouldBeLinked = cb.isChecked()
@@ -524,7 +682,6 @@ class projectViewPage(QWidget):
                 InfoBar.warning(title="Couldn't update", content=str(e), parent=self,
                                 duration=3000, position=InfoBarPosition.TOP)
 
-        # Refresh both lists so labels update everywhere
         self.refreshMilestoneList()
         self.refreshTaskList()
 
@@ -539,6 +696,52 @@ class projectViewPage(QWidget):
         if self.project:
             for task in self.project.tasks:
                 self.renderTask(task)
+
+    def styleDateInput(self):
+        if isDarkTheme():
+            self.milestoneDateInput.setStyleSheet("""
+                QDateEdit {
+                    background-color: #3A3A3A;
+                    color: white;
+                    border: 1px solid #666666;
+                    border-radius: 6px;
+                    padding: 6px;
+                }
+
+                QDateEdit::drop-down {
+                    background-color: #3A3A3A;
+                    border: none;
+                    width: 22px;
+                }
+
+                QDateEdit QLineEdit {
+                    background-color: #3A3A3A;
+                    color: white;
+                    border: none;
+                }
+            """)
+        else:
+            self.milestoneDateInput.setStyleSheet("""
+                QDateEdit {
+                    background-color: white;
+                    color: #202020;
+                    border: 1px solid #CCCCCC;
+                    border-radius: 6px;
+                    padding: 6px;
+                }
+
+                QDateEdit::drop-down {
+                    background-color: white;
+                    border: none;
+                    width: 22px;
+                }
+
+                QDateEdit QLineEdit {
+                    background-color: white;
+                    color: #202020;
+                    border: none;
+                }
+            """)
 
     # ─── Images Tab ───────────────────────────────────────────────────────────
 
@@ -558,18 +761,14 @@ class projectViewPage(QWidget):
         )
         self.uploadButton.clicked.connect(self.uploadImage)
 
-        scrollArea = QScrollArea()
-        scrollArea.setWidgetResizable(True)
-        scrollArea.setStyleSheet("QScrollArea { border: none; background: transparent; }")
-
         self.imageGridContainer = QWidget()
+        self.imageGridContainer.setStyleSheet("background: transparent;")
         self.imageGrid = QGridLayout(self.imageGridContainer)
         self.imageGrid.setSpacing(16)
         self.imageGrid.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
         self.imageGrid.addWidget(self.uploadButton, 0, 0)
 
-        scrollArea.setWidget(self.imageGridContainer)
-        pageLayout.addWidget(scrollArea)
+        pageLayout.addWidget(self.imageGridContainer)
 
         return page
 
@@ -588,7 +787,9 @@ class projectViewPage(QWidget):
         dialogLayout = QVBoxLayout(dialog)
         descInput = QLineEdit()
         descInput.setPlaceholderText("Enter a description for this image...")
-        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
         buttons.accepted.connect(dialog.accept)
         buttons.rejected.connect(dialog.reject)
         dialogLayout.addWidget(QLabel("Description (optional):"))
@@ -608,9 +809,13 @@ class projectViewPage(QWidget):
                             duration=3000, position=InfoBarPosition.TOP)
 
     def renderImage(self, media: Media):
-        pixmap = media.getPixmap().scaled(180, 140, Qt.AspectRatioMode.KeepAspectRatio,
-                                          Qt.TransformationMode.SmoothTransformation)
+        pixmap = media.getPixmap().scaled(
+            180, 140,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation
+        )
         cellWidget = QWidget()
+        cellWidget.setStyleSheet("background: transparent;")
         cellLayout = QVBoxLayout(cellWidget)
         cellLayout.setContentsMargins(0, 0, 0, 0)
         cellLayout.setSpacing(6)
@@ -618,17 +823,22 @@ class projectViewPage(QWidget):
         imgLabel = QLabel()
         imgLabel.setPixmap(pixmap)
         imgLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        imgLabel.setStyleSheet("background: transparent;")
 
         label = media.description if media.description else media.filePath.split("/")[-1]
-        nameLabel = BodyLabel(label)
+        nameLabel = QLabel(label)
+        nameLabel.setFont(QFont("Segoe UI", 10))
         nameLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
         nameLabel.setWordWrap(True)
         nameLabel.setMaximumWidth(180)
+        nameLabel.setStyleSheet(
+            f"color: {'#CCCCCC' if isDarkTheme() else '#444444'}; background: transparent;"
+        )
 
         cellLayout.addWidget(imgLabel)
         cellLayout.addWidget(nameLabel)
 
-        count = len(self.project.media)
+        count = self.imageGrid.count()
         cols = 3
         gridRow = count // cols
         gridCol = count % cols
@@ -665,14 +875,20 @@ class projectViewPage(QWidget):
             summaryLayout.addWidget(lbl)
 
         exportLabel = StrongBodyLabel("Export Options")
+
         self.exportPdfButton = PrimaryPushButton("  Export as PDF")
         self.exportPdfButton.setMinimumHeight(44)
         self.exportPdfButton.clicked.connect(self.exportAsPdf)
+
+        self.exportImageButton = PrimaryPushButton("  Export as Image")
+        self.exportImageButton.setMinimumHeight(44)
+        self.exportImageButton.clicked.connect(self.exportAsImage)
 
         pageLayout.addWidget(titleLabel)
         pageLayout.addWidget(self.summaryCard)
         pageLayout.addWidget(exportLabel)
         pageLayout.addWidget(self.exportPdfButton)
+        pageLayout.addWidget(self.exportImageButton)
         pageLayout.addStretch()
 
         return page
@@ -690,6 +906,17 @@ class projectViewPage(QWidget):
         )
         self.summaryImagesLabel.setText(f"Images: {len(self.project.media)}")
 
+    def exportAsImage(self):
+        """Export project as a PNG image (shareable on Instagram etc.)"""
+        if not self.project:
+            return
+        filePath, _ = QFileDialog.getSaveFileName(
+            self, "Export as Image", f"{self.project.title}.png", "PNG Image (*.png)"
+        )
+        if not filePath:
+            return
+        self._renderProjectImage(filePath, asPdf=False)
+
     def exportAsPdf(self):
         if not self.project:
             return
@@ -698,15 +925,222 @@ class projectViewPage(QWidget):
         )
         if not filePath:
             return
-        printer = QPrinter(QPrinter.PrinterMode.HighResolution)
-        printer.setOutputFormat(QPrinter.OutputFormat.PdfFormat)
-        printer.setOutputFileName(filePath)
-        printer.setPageSize(QPageSize(QPageSize.PageSizeId.A4))
-        painter = QPainter(printer)
-        self.exportPage.render(painter)
+        self._renderProjectImage(filePath, asPdf=True)
+
+    def _renderProjectImage(self, filePath, asPdf=False):
+        _DATA_DIR = Path(__file__).parent.parent.parent / "data"
+        _AVATAR_FILE = _DATA_DIR / "avatar.png"
+        _PROFILE_JSON = _DATA_DIR / "profile.json"
+
+        profile = {"username": "", "bio": ""}
+        if _PROFILE_JSON.exists():
+            try:
+                profile = json.loads(_PROFILE_JSON.read_text(encoding="utf-8"))
+            except Exception:
+                pass
+
+        # ── Canvas setup ─────────────────────────────────────────────────────────
+        # We render at a fixed logical width (like a screen), then scale for output
+        # Instagram friendly: square or portrait, high res
+        CANVAS_W = 1080
+        margin = 60
+        contentW = CANVAS_W - margin * 2
+
+        # ── First pass: measure total height ─────────────────────────────────────
+        # We need to know total height before creating QImage
+        # Use a dummy image to measure text
+        dummy = QImage(1, 1, QImage.Format.Format_ARGB32)
+        dummyPainter = QPainter(dummy)
+
+        def measureText(text, fontSize, bold, width, indent=0):
+            font = QFont("Segoe UI", fontSize)
+            font.setBold(bold)
+            dummyPainter.setFont(font)
+            rect = QRectF(0, 0, width - indent, 9999)
+            br = dummyPainter.boundingRect(rect, Qt.TextFlag.TextWordWrap, text)
+            return br.height()
+
+        avatarSize = 120
+        profileH = max(avatarSize, measureText(profile.get("username",""), 22, True, contentW - avatarSize - 16)
+                                + measureText(profile.get("bio",""), 13, False, contentW - avatarSize - 16) + 8)
+
+        imgW = int(contentW * 0.38)
+        imgH = int(imgW * 0.7)
+        mediaCount = len(self.project.media) if self.project.media else 0
+
+        titleH = measureText(self.project.title.upper(), 28, True, contentW)
+        descH = measureText(self.project.description, 13, False, contentW)
+        progressH = 18 + 6 + 20  # label + bar + pct
+
+        imagesH = mediaCount * (imgH + 20)
+
+        totalH = (margin                    # top margin
+                + profileH + 20            # avatar + gap
+                + 1 + 16                   # divider + gap
+                + titleH + 12              # title
+                + descH + 20              # description
+                + progressH + 20           # progress
+                + 1 + 16                   # divider
+                + (40 + imagesH if mediaCount else 0)  # images section
+                + margin)                  # bottom margin
+
+        dummyPainter.end()
+
+        CANVAS_H = int(totalH)
+
+        # ── Create actual image ───────────────────────────────────────────────────
+        img = QImage(CANVAS_W, CANVAS_H, QImage.Format.Format_ARGB32)
+        img.fill(QColor("#FFFFFF"))
+        painter = QPainter(img)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setRenderHint(QPainter.RenderHint.TextAntialiasing)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+
+        x = float(margin)
+        y = float(margin)
+
+        # ── Helpers ───────────────────────────────────────────────────────────────
+        def drawText(text, fontSize, bold, y, color=QColor("#111111"), indent=0, spacing=8, width=None):
+            font = QFont("Segoe UI", fontSize)
+            font.setBold(bold)
+            painter.setFont(font)
+            painter.setPen(color)
+            w = (width if width else contentW) - indent
+            rect = QRectF(x + indent, y, w, 9999)
+            br = painter.boundingRect(rect, Qt.TextFlag.TextWordWrap, text)
+            painter.drawText(rect, Qt.TextFlag.TextWordWrap, text)
+            return y + br.height() + spacing
+
+        def drawDivider(y):
+            painter.setPen(QPen(QColor("#E0E0E0"), 1))
+            painter.drawLine(int(x), int(y), int(x + contentW), int(y))
+            return y + 16
+
+        # ── Avatar + profile ──────────────────────────────────────────────────────
+        if _AVATAR_FILE.exists():
+            avatarPixmap = QPixmap(str(_AVATAR_FILE)).scaled(
+                avatarSize, avatarSize,
+                Qt.AspectRatioMode.KeepAspectRatioByExpanding,
+                Qt.TransformationMode.SmoothTransformation
+            )
+            path = QPainterPath()
+            path.addEllipse(x, y, avatarSize, avatarSize)
+            painter.setClipPath(path)
+            painter.drawPixmap(int(x), int(y), avatarPixmap)
+            painter.setClipping(False)
+
+        textX = x + avatarSize + 16
+        textW = contentW - avatarSize - 16
+
+        nameFont = QFont("Segoe UI", 22)
+        nameFont.setBold(True)
+        painter.setFont(nameFont)
+        painter.setPen(QColor("#111111"))
+        nameRect = QRectF(textX, y + 18, textW, 9999)
+        nameBR = painter.boundingRect(nameRect, Qt.TextFlag.TextWordWrap, profile.get("username", ""))
+        painter.drawText(nameRect, Qt.TextFlag.TextWordWrap, profile.get("username", ""))
+
+        bioFont = QFont("Segoe UI", 13)
+        painter.setFont(bioFont)
+        painter.setPen(QColor("#666666"))
+        bioY = y + 18 + nameBR.height() + 6
+        painter.drawText(QRectF(textX, bioY, textW, 9999), Qt.TextFlag.TextWordWrap, profile.get("bio", ""))
+
+        y += max(avatarSize, nameBR.height() + 8 + 20) + 20
+        y = drawDivider(y)
+
+        # ── Project title ─────────────────────────────────────────────────────────
+        y = drawText(self.project.title.upper(), 28, True, y, QColor("#111111"), spacing=12)
+
+        # ── Description ───────────────────────────────────────────────────────────
+        y = drawText(self.project.description, 13, False, y, QColor("#555555"), spacing=20)
+
+        # ── Progress ──────────────────────────────────────────────────────────────
+        progress = self.project.getProgress()
+
+        labelFont = QFont("Segoe UI", 11)
+        labelFont.setBold(True)
+        painter.setFont(labelFont)
+        painter.setPen(QColor("#111111"))
+        painter.drawText(QRectF(x, y, contentW, 9999), Qt.TextFlag.TextWordWrap, "Progress")
+        y += 22
+
+        barH = 10
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QColor("#EEEEEE"))
+        painter.drawRoundedRect(QRectF(x, y, contentW, barH), 5, 5)
+        if progress > 0:
+            painter.setBrush(QColor("#1A6FA8"))
+            painter.drawRoundedRect(QRectF(x, y, contentW * (progress / 100), barH), 5, 5)
+        y += barH + 6
+
+        pctFont = QFont("Segoe UI", 10)
+        painter.setFont(pctFont)
+        painter.setPen(QColor("#888888"))
+        painter.drawText(QRectF(x, y, contentW, 9999), Qt.TextFlag.TextWordWrap, f"{progress:.0f}% complete")
+        y += 20 + 20
+
+        y = drawDivider(y)
+
+        # ── Images ────────────────────────────────────────────────────────────────
+        if self.project.media:
+            y = drawText("Images", 11, True, y, QColor("#111111"), spacing=14)
+
+            for media in self.project.media:
+                pixmap = media.getPixmap().scaled(
+                    imgW, imgH,
+                    Qt.AspectRatioMode.KeepAspectRatio,
+                    Qt.TransformationMode.SmoothTransformation
+                )
+                painter.drawPixmap(int(x), int(y), pixmap)
+
+                if media.description:
+                    captionFont = QFont("Segoe UI", 13)
+                    painter.setFont(captionFont)
+                    painter.setPen(QColor("#333333"))
+                    capX = x + pixmap.width() + 20
+                    capW = contentW - pixmap.width() - 20
+                    capRect = QRectF(capX, y, capW, 9999)
+                    capBR = painter.boundingRect(capRect, Qt.TextFlag.TextWordWrap, media.description)
+                    capY = y + max(0.0, (pixmap.height() - capBR.height()) / 2)
+                    painter.drawText(QRectF(capX, capY, capW, 9999), Qt.TextFlag.TextWordWrap, media.description)
+
+                y += pixmap.height() + 20
+
         painter.end()
 
-    # ─── Tab switching ────────────────────────────────────────────────────────
+        # ── Save ──────────────────────────────────────────────────────────────────
+        if asPdf:
+            printer = QPrinter(QPrinter.PrinterMode.HighResolution)
+            printer.setOutputFormat(QPrinter.OutputFormat.PdfFormat)
+            printer.setOutputFileName(filePath)
+
+            # Set custom page size to match our image exactly
+            pageSizeMM = QSizeF(CANVAS_W * 25.4 / 96, CANVAS_H * 25.4 / 96)
+            printer.setPageSize(QPageSize(pageSizeMM, QPageSize.Unit.Millimeter))
+            printer.setPageMargins(QMarginsF(0, 0, 0, 0))
+
+            pdfPainter = QPainter(printer)
+            prRect = printer.pageRect(QPrinter.Unit.DevicePixel)
+            scaled = img.scaled(
+                int(prRect.width()), int(prRect.height()),
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation
+            )
+            pdfPainter.drawImage(0, 0, scaled)
+            pdfPainter.end()
+        else:
+            img.save(filePath, "PNG")
+
+        InfoBar.success(
+            title="Exported!",
+            content=f"Saved to {filePath}",
+            parent=self,
+            duration=3000,
+            position=InfoBarPosition.TOP
+        )
+
+        # ─── Tab switching ────────────────────────────────────────────────────────
 
     def setActiveTab(self, index):
         self.contentStack.setCurrentIndex(index)
@@ -723,6 +1157,8 @@ class projectViewPage(QWidget):
                 currentIndex = self.contentStack.currentIndex()
                 self.applyThemeColors()
                 self.setActiveTab(currentIndex)
+                self.refreshTaskList()
+                self.refreshMilestoneList()
 
     def showEvent(self, event):
         super().showEvent(event)

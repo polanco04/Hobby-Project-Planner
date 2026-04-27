@@ -1,8 +1,7 @@
-from PyQt6.QtWidgets import QVBoxLayout, QHBoxLayout
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import QDate, Qt
 from qfluentwidgets import (
     MessageBoxBase, SubtitleLabel, LineEdit, TextEdit, 
-    StrongBodyLabel, DatePicker
+    StrongBodyLabel, DatePicker, InfoBar, InfoBarPosition
 )
 
 class NewProjectDialog(MessageBoxBase):
@@ -57,8 +56,21 @@ class NewProjectDialog(MessageBoxBase):
         }
 
     def validate(self) -> bool:
-        # Called automatically when Create is clicked
+        # Title check
         if not self.titleInput.text().strip():
-            self.titleInput.setError(True)
             return False
+
+        # Date check
+        if self.deadlinePicker.getDate() < QDate.currentDate():
+            InfoBar.error(
+                title='Invalid Date',
+                content="The deadline cannot be in the past.",
+                orient= Qt.Orientation.Horizontal,
+                isClosable=True,
+                position=InfoBarPosition.TOP,
+                duration=2000,
+                parent=self
+            )
+            return False
+            
         return True

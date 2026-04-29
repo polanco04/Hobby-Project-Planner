@@ -15,7 +15,7 @@ class MainWindow(FluentWindow):
         # Create pages
         self.homePage = homePage(self, self.hobbyist)
         self.projectPage = projectPage(self.hobbyist)
-        self.profilePage = profilePage()
+        self.profilePage = profilePage(self.hobbyist)
         self.projectViewPage = projectViewPage()
 
         # Add to Fluent navigation

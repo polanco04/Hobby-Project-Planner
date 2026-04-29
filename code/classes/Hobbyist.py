@@ -31,6 +31,9 @@ class Hobbyist:
                 self.projects.remove(project)
                 break
 
+    def setProfilePicture(self, filePath: str):
+        self.profilePicture = filePath
+        
     def shareProject(self, project: Project):
         pass  # implement sharing logic later
 

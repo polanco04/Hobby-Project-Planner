@@ -3,7 +3,8 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 from qfluentwidgets import (
     BodyLabel, CardWidget, SubtitleLabel, TitleLabel, PrimaryPushButton, 
-    HorizontalSeparator, IconWidget, InfoBar, InfoBarPosition, PushButton
+    HorizontalSeparator, IconWidget, InfoBar, InfoBarPosition, PushButton,
+    MessageBox
 )
 from qfluentwidgets import FluentIcon as FIF
 from components.widgets import createFeatureCard
@@ -152,23 +153,23 @@ class projectPage(QWidget):
         layout.setContentsMargins(20, 20, 20, 20)
 
         textLayout = QVBoxLayout()
-        title = SubtitleLabel(project.title.upper())
+        title = SubtitleLabel(project.title)
         title.setFont(QFont("Segoe UI", 14))
-        
         desc = BodyLabel(project.description)
         desc.setFont(QFont("Segoe UI", 11))
         desc.setWordWrap(True)
-        
         textLayout.addWidget(title)
         textLayout.addWidget(desc)
 
         if hasattr(project, 'deadline') and project.deadline:
             dateLabel = BodyLabel(f"Deadline: {project.deadline}")
             dateLabel.setFont(QFont("Segoe UI", 10))
-            dateLabel.setStyleSheet("color: gray;") 
+            dateLabel.setStyleSheet("color: gray;")
             textLayout.addWidget(dateLabel)
 
         btnRow = QVBoxLayout()
+        btnRow.setSpacing(6)
+
         openBtn = PushButton("Open")
         openBtn.setFixedWidth(80)
         openBtn.clicked.connect(lambda checked=False, p=project: self.openProject(p))
@@ -177,13 +178,26 @@ class projectPage(QWidget):
         editBtn.setFixedWidth(80)
         editBtn.clicked.connect(lambda checked=False, p=project: self.editProject(p))
 
+        deleteBtn = PushButton("Delete")
+        deleteBtn.setFixedWidth(80)
+        deleteBtn.setStyleSheet("""
+            QPushButton {
+                color: #CC4444;
+                border: 1.5px solid #CC4444;
+                border-radius: 8px;
+                background: transparent;
+            }
+            QPushButton:hover { background: rgba(204,68,68,0.08); }
+        """)
+        deleteBtn.clicked.connect(lambda checked=False, p=project: self.deleteProject(p))
+
         btnRow.addWidget(openBtn)
         btnRow.addWidget(editBtn)
+        btnRow.addWidget(deleteBtn)
 
         layout.addLayout(textLayout)
         layout.addStretch()
         layout.addLayout(btnRow)
-
         return card
 
     def openProject(self, project):
@@ -202,3 +216,14 @@ class projectPage(QWidget):
                 deadline=values["deadline"]
             )
             self.refreshProjects()
+
+    def deleteProject(self, project):
+        dialog = MessageBox(
+            "Delete Project",
+            f"Are you sure you want to delete '{project.title}'? This cannot be undone.",
+            self.window()
+        )
+        if dialog.exec():
+            self.hobbyist.deleteProject(project.projectId)
+            self.refreshProjects()
+        

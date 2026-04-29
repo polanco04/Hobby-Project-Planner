@@ -61,8 +61,8 @@ class Project:
         raise Exception(f"Milestone {milestoneId} not found")
     
     def addMedia(self, media: Media):
-        if len(self.media) >= 3:
-            raise Exception("Cannot have more than 3 photos")
+        if len(self.media) >= 5:
+            raise Exception("Cannot have more than 5 photos")
         
         media.mediaId = self.mediaId
         self.mediaId += 1

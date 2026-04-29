@@ -5,13 +5,13 @@ from PyQt6.QtWidgets import (
     QFrame, QHBoxLayout, QLabel, QListWidget, QListWidgetItem,
     QPushButton, QSizePolicy, QStackedWidget, QWidget, QVBoxLayout,
     QCheckBox, QFileDialog, QGridLayout, QDateEdit,
-    QDialog, QDialogButtonBox, QLineEdit, 
+    QDialog, QDialogButtonBox, QLineEdit, QScrollArea
 )
 from PyQt6.QtPrintSupport import QPrinter
-from PyQt6.QtCore import QEvent, Qt, QDate, QRectF, QSizeF, QMarginsF
+from PyQt6.QtCore import QEvent, Qt, QDate, QRectF, QSizeF, QMarginsF 
 from PyQt6.QtGui import (
     QFont, QPixmap, QPainter, QPageSize, QColor, 
-    QPainterPath, QPen, QImage, QPageSize
+    QPainterPath, QPen, QImage, QPageSize, 
     )
 from PyQt6.QtPrintSupport import QPrinter
 from qfluentwidgets import (
@@ -596,7 +596,7 @@ class projectViewPage(QWidget):
         dateEdit = QDateEdit()
         dateEdit.setCalendarPopup(True)
         dateEdit.setDisplayFormat("MM/dd/yyyy")
-        self.milestoneDateInput.setMinimumDate(QDate.currentDate())
+        dateEdit.setMinimumDate(QDate.currentDate())
         dateEdit.setDate(QDate(
             milestone.deadline.year,
             milestone.deadline.month,
@@ -752,7 +752,7 @@ class projectViewPage(QWidget):
         pageLayout.setSpacing(16)
 
         self.uploadButton = QPushButton("↑\nClick to upload an image")
-        self.uploadButton.setFixedSize(180, 120)
+        self.uploadButton.setFixedSize(280, 200)  # match image size exactly
         self.uploadButton.setCursor(Qt.CursorShape.PointingHandCursor)
         self.uploadButton.setStyleSheet(
             "QPushButton { border: 2px dashed #AAAAAA; border-radius: 10px;"
@@ -764,11 +764,13 @@ class projectViewPage(QWidget):
         self.imageGridContainer = QWidget()
         self.imageGridContainer.setStyleSheet("background: transparent;")
         self.imageGrid = QGridLayout(self.imageGridContainer)
-        self.imageGrid.setSpacing(16)
+        self.imageGrid.setSpacing(20)
+        self.imageGrid.setContentsMargins(0, 0, 0, 0)
         self.imageGrid.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
         self.imageGrid.addWidget(self.uploadButton, 0, 0)
 
         pageLayout.addWidget(self.imageGridContainer)
+        pageLayout.addStretch()
 
         return page
 
@@ -809,33 +811,57 @@ class projectViewPage(QWidget):
                             duration=3000, position=InfoBarPosition.TOP)
 
     def renderImage(self, media: Media):
+        IMG_W = 280
+        IMG_H = 200
+
         pixmap = media.getPixmap().scaled(
-            180, 140,
-            Qt.AspectRatioMode.KeepAspectRatio,
+            IMG_W, IMG_H,
+            Qt.AspectRatioMode.KeepAspectRatio,  # ← changed, no crop needed
             Qt.TransformationMode.SmoothTransformation
         )
+
         cellWidget = QWidget()
+        cellWidget.setFixedWidth(IMG_W)
         cellWidget.setStyleSheet("background: transparent;")
         cellLayout = QVBoxLayout(cellWidget)
         cellLayout.setContentsMargins(0, 0, 0, 0)
-        cellLayout.setSpacing(6)
+        cellLayout.setSpacing(8)
 
-        imgLabel = QLabel()
+        imgContainer = QWidget()
+        imgContainer.setFixedSize(IMG_W, IMG_H)
+        imgContainer.setStyleSheet("background: transparent;")
+
+        imgLabel = QLabel(imgContainer)
         imgLabel.setPixmap(pixmap)
-        imgLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        imgLabel.setGeometry(0, 0, IMG_W, IMG_H)
+        imgLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)  # centers the image in the slot
         imgLabel.setStyleSheet("background: transparent;")
+        imgLabel.setCursor(Qt.CursorShape.PointingHandCursor)
+        imgLabel.mousePressEvent = lambda e, m=media: self.showFullImage(m)
 
-        label = media.description if media.description else media.filePath.split("/")[-1]
+        deleteBtn = QPushButton("✕", imgContainer)
+        deleteBtn.setFixedSize(26, 26)
+        deleteBtn.move(IMG_W - 30, 4)
+        deleteBtn.setCursor(Qt.CursorShape.PointingHandCursor)
+        deleteBtn.setStyleSheet(
+            "QPushButton { color: #CC4444; border: 1px solid #CC4444; border-radius: 6px;"
+            "font-size: 11px; background: rgba(255,255,255,0.9); font-weight: bold; }"
+            "QPushButton:hover { background: rgba(204,68,68,0.15); }"
+        )
+        deleteBtn.clicked.connect(lambda checked=False, m=media: self.deleteImage(m))
+        deleteBtn.raise_()
+
+        label = media.description if media.description else ""
         nameLabel = QLabel(label)
         nameLabel.setFont(QFont("Segoe UI", 10))
         nameLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
         nameLabel.setWordWrap(True)
-        nameLabel.setMaximumWidth(180)
+        nameLabel.setMaximumWidth(IMG_W)
         nameLabel.setStyleSheet(
-            f"color: {'#CCCCCC' if isDarkTheme() else '#444444'}; background: transparent;"
+            f"color: {'#CCCCCC' if isDarkTheme() else '#555555'}; background: transparent;"
         )
 
-        cellLayout.addWidget(imgLabel)
+        cellLayout.addWidget(imgContainer)
         cellLayout.addWidget(nameLabel)
 
         count = self.imageGrid.count()
@@ -843,6 +869,47 @@ class projectViewPage(QWidget):
         gridRow = count // cols
         gridCol = count % cols
         self.imageGrid.addWidget(cellWidget, gridRow, gridCol)
+
+    def deleteImage(self, media: Media):
+        try:
+            self.project.removeMedia(media.mediaId)
+            media.delete()
+            # rebuild the image grid
+            while self.imageGrid.count() > 1:
+                item = self.imageGrid.takeAt(1)
+                if item.widget():
+                    item.widget().deleteLater()
+            for m in self.project.media:
+                self.renderImage(m)
+        except Exception as e:
+            InfoBar.warning(title="Couldn't delete image", content=str(e),
+                            parent=self, duration=3000, position=InfoBarPosition.TOP)
+
+    def showFullImage(self, media: Media):
+        dialog = QDialog(self)
+        dialog.setWindowTitle(media.description or "Image")
+        dialog.setMinimumSize(600, 500)
+        layout = QVBoxLayout(dialog)
+        layout.setContentsMargins(16, 16, 16, 16)
+
+        imgLabel = QLabel()
+        fullPixmap = media.getPixmap().scaled(
+            800, 600,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation
+        )
+        imgLabel.setPixmap(fullPixmap)
+        imgLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        if media.description:
+            descLabel = QLabel(media.description)
+            descLabel.setFont(QFont("Segoe UI", 11))
+            descLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            descLabel.setStyleSheet("color: #555555;")
+            layout.addWidget(descLabel)
+
+        layout.addWidget(imgLabel)
+        dialog.exec()
 
     # ─── Export Tab ───────────────────────────────────────────────────────────
 

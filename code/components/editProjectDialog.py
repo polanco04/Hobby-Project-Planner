@@ -1,7 +1,7 @@
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import QDate
 from qfluentwidgets import (
     MessageBoxBase, SubtitleLabel, LineEdit, TextEdit,
-    StrongBodyLabel, CalendarPicker
+    StrongBodyLabel, CalendarPicker, InfoBar, InfoBarPosition
 )
 
 class EditProjectDialog(MessageBoxBase):
@@ -50,4 +50,16 @@ class EditProjectDialog(MessageBoxBase):
         if not self.titleInput.text().strip():
             self.titleInput.setError(True)
             return False
+
+        d = self.deadlinePicker.getDate()
+        if not d or d < QDate.currentDate():
+            InfoBar.warning(
+                title="Invalid Date",
+                content="The deadline cannot be in the past.",
+                parent=self.parent(),
+                duration=3000,
+                position=InfoBarPosition.TOP
+            )
+            return False
+
         return True

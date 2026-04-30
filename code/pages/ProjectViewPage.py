@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (
     QFrame, QHBoxLayout, QLabel, QListWidget, QListWidgetItem,
     QPushButton, QSizePolicy, QStackedWidget, QWidget, QVBoxLayout,
     QCheckBox, QFileDialog, QGridLayout, QDateEdit,
-    QDialog, QDialogButtonBox, QLineEdit, QScrollArea
+    QDialog, QDialogButtonBox, QLineEdit,
 )
 from PyQt6.QtPrintSupport import QPrinter
 from PyQt6.QtCore import QEvent, Qt, QDate, QRectF, QSizeF, QMarginsF 
@@ -22,14 +22,15 @@ from classes.Task import Task
 from classes.Milestone import Milestone
 from classes.Media import Media
 from datetime import datetime
-import json
 from pathlib import Path
+from utils import getAppDataDir
 
 class projectViewPage(QWidget):
-    def __init__(self):
+    def __init__(self, storage=None):
         super().__init__()
 
         self.project = None
+        self.storage = storage
         self.setObjectName("projectViewPage")
 
         layout = QVBoxLayout()
@@ -111,7 +112,7 @@ class projectViewPage(QWidget):
 
     # ─── Theme ────────────────────────────────────────────────────────────────
 
-    def _assignBtnStyle(self):
+    def assignBtnStyle(self):
         if isDarkTheme():
             return (
                 "QPushButton { color: #FFFFFF; border: 1px solid #CFCFCF; border-radius: 6px;"
@@ -125,7 +126,7 @@ class projectViewPage(QWidget):
                 "QPushButton:hover { background: rgba(32,32,32,0.08); }"
             )
 
-    def _deleteBtnStyle(self):
+    def deleteBtnStyle(self):
         return (
             "QPushButton { color: #CC4444; border: 1px solid #CC4444; border-radius: 6px;"
             "font-size: 11px; background: transparent; }"
@@ -237,6 +238,7 @@ class projectViewPage(QWidget):
         try:
             task = Task(name=text, description="", deadline=self.project.deadline, estimatedTime=0)
             self.project.addTask(task)
+            self.save()
             self.renderTask(task)
             self.taskInput.clear()
         except Exception as e:
@@ -285,6 +287,7 @@ class projectViewPage(QWidget):
                     t.unmarkComplete()
                     font.setStrikeOut(False)
                 cb.setFont(font)
+                self.save()
                 self.refreshMilestoneList()
             except Exception as e:
                 InfoBar.warning(title="Couldn't update task", content=str(e), parent=self,
@@ -298,19 +301,19 @@ class projectViewPage(QWidget):
         assignBtn = QPushButton("+ Milestone")
         assignBtn.setFixedHeight(28)
         assignBtn.setCursor(Qt.CursorShape.PointingHandCursor)
-        assignBtn.setStyleSheet(self._assignBtnStyle())
+        assignBtn.setStyleSheet(self.assignBtnStyle())
         assignBtn.clicked.connect(lambda checked=False, t=task: self.showAssignToMilestoneDialog(t))
 
         editBtn = QPushButton("✎")
         editBtn.setFixedSize(28, 28)
         editBtn.setCursor(Qt.CursorShape.PointingHandCursor)
-        editBtn.setStyleSheet(self._assignBtnStyle())
+        editBtn.setStyleSheet(self.assignBtnStyle())
         editBtn.clicked.connect(lambda checked=False, t=task: self.editTask(t))
 
         deleteBtn = QPushButton("✕")
         deleteBtn.setFixedSize(28, 28)
         deleteBtn.setCursor(Qt.CursorShape.PointingHandCursor)
-        deleteBtn.setStyleSheet(self._deleteBtnStyle())
+        deleteBtn.setStyleSheet(self.deleteBtnStyle())
         deleteBtn.clicked.connect(lambda checked=False, t=task: self.deleteTask(t))
 
         milestoneLabel = QLabel()
@@ -361,6 +364,7 @@ class projectViewPage(QWidget):
         newName = nameInput.text().strip()
         if newName:
             task.updateDetails(newName, task.description)
+            self.save()
             self.refreshTaskList()
 
     def deleteTask(self, task: Task):
@@ -369,6 +373,7 @@ class projectViewPage(QWidget):
                 if task in milestone.tasks:
                     milestone.removeTask(task)
             self.project.removeTask(task.taskId)
+            self.save()
             self.refreshTaskList()
             self.refreshMilestoneList()
         except Exception as e:
@@ -432,6 +437,8 @@ class projectViewPage(QWidget):
                 self.updateTaskMilestoneLabel(task, task._milestoneLabel)
 
             self.refreshMilestoneList()
+            self.save()
+
         except Exception as e:
             InfoBar.warning(title="Couldn't assign task", content=str(e), parent=self,
                             duration=3000, position=InfoBarPosition.TOP)
@@ -487,6 +494,7 @@ class projectViewPage(QWidget):
         try:
             milestone = Milestone(name=text, deadline=deadline)
             self.project.addMilestone(milestone)
+            self.save()
             self.renderMilestone(milestone)
             self.milestoneInput.clear()
         except Exception as e:
@@ -552,19 +560,19 @@ class projectViewPage(QWidget):
         assignBtn = QPushButton("+ Tasks")
         assignBtn.setFixedHeight(28)
         assignBtn.setCursor(Qt.CursorShape.PointingHandCursor)
-        assignBtn.setStyleSheet(self._assignBtnStyle())
+        assignBtn.setStyleSheet(self.assignBtnStyle())
         assignBtn.clicked.connect(lambda checked=False, m=milestone: self.showAssignTasksDialog(m))
 
         editBtn = QPushButton("✎")
         editBtn.setFixedSize(28, 28)
         editBtn.setCursor(Qt.CursorShape.PointingHandCursor)
-        editBtn.setStyleSheet(self._assignBtnStyle())
+        editBtn.setStyleSheet(self.assignBtnStyle())
         editBtn.clicked.connect(lambda checked=False, m=milestone: self.editMilestone(m))
 
         deleteBtn = QPushButton("✕")
         deleteBtn.setFixedSize(28, 28)
         deleteBtn.setCursor(Qt.CursorShape.PointingHandCursor)
-        deleteBtn.setStyleSheet(self._deleteBtnStyle())
+        deleteBtn.setStyleSheet(self.deleteBtnStyle())
         deleteBtn.clicked.connect(lambda checked=False, m=milestone: self.deleteMilestone(m))
 
         btnRow = QHBoxLayout()
@@ -623,6 +631,7 @@ class projectViewPage(QWidget):
             milestone.name = newName
         qdate = dateEdit.date()
         milestone.deadline = datetime(qdate.year(), qdate.month(), qdate.day())
+        self.save()
         self.refreshMilestoneList()
 
     def deleteMilestone(self, milestone: Milestone):
@@ -630,6 +639,7 @@ class projectViewPage(QWidget):
             for task in list(milestone.tasks):
                 milestone.removeTask(task)
             self.project.removeMilestone(milestone.milestoneId)
+            self.save()
             self.refreshMilestoneList()
             self.refreshTaskList()
         except Exception as e:
@@ -684,6 +694,7 @@ class projectViewPage(QWidget):
 
         self.refreshMilestoneList()
         self.refreshTaskList()
+        self.save()
 
     def refreshMilestoneList(self):
         self.milestoneList.clear()
@@ -805,6 +816,7 @@ class projectViewPage(QWidget):
             media = Media(filePath=filePath, description=descInput.text().strip())
             media.upload(self.project.projectId)
             self.project.addMedia(media)
+            self.save()
             self.renderImage(media)
         except Exception as e:
             InfoBar.warning(title="Couldn't add image", content=str(e), parent=self,
@@ -874,6 +886,8 @@ class projectViewPage(QWidget):
         try:
             self.project.removeMedia(media.mediaId)
             media.delete()
+            self.save()
+
             # rebuild the image grid
             while self.imageGrid.count() > 1:
                 item = self.imageGrid.takeAt(1)
@@ -982,7 +996,7 @@ class projectViewPage(QWidget):
         )
         if not filePath:
             return
-        self._renderProjectImage(filePath, asPdf=False)
+        self.renderProjectImage(filePath, asPdf=False)
 
     def exportAsPdf(self):
         if not self.project:
@@ -992,30 +1006,22 @@ class projectViewPage(QWidget):
         )
         if not filePath:
             return
-        self._renderProjectImage(filePath, asPdf=True)
+        self.renderProjectImage(filePath, asPdf=True)
 
-    def _renderProjectImage(self, filePath, asPdf=False):
-        _DATA_DIR = Path(__file__).parent.parent.parent / "data"
+    def renderProjectImage(self, filePath, asPdf=False):
+        _DATA_DIR = Path(getAppDataDir())
         _AVATAR_FILE = _DATA_DIR / "avatar.png"
-        _PROFILE_JSON = _DATA_DIR / "profile.json"
 
         profile = {"username": "", "bio": ""}
-        if _PROFILE_JSON.exists():
-            try:
-                profile = json.loads(_PROFILE_JSON.read_text(encoding="utf-8"))
-            except Exception:
-                pass
+        mainWindow = self.window()
+        if hasattr(mainWindow, "hobbyist"):
+            profile["username"] = mainWindow.hobbyist.username or ""
+            profile["bio"] = mainWindow.hobbyist.bio or ""
 
-        # ── Canvas setup ─────────────────────────────────────────────────────────
-        # We render at a fixed logical width (like a screen), then scale for output
-        # Instagram friendly: square or portrait, high res
         CANVAS_W = 1080
         margin = 60
         contentW = CANVAS_W - margin * 2
 
-        # ── First pass: measure total height ─────────────────────────────────────
-        # We need to know total height before creating QImage
-        # Use a dummy image to measure text
         dummy = QImage(1, 1, QImage.Format.Format_ARGB32)
         dummyPainter = QPainter(dummy)
 
@@ -1037,25 +1043,24 @@ class projectViewPage(QWidget):
 
         titleH = measureText(self.project.title.upper(), 28, True, contentW)
         descH = measureText(self.project.description, 13, False, contentW)
-        progressH = 18 + 6 + 20  # label + bar + pct
+        progressH = 18 + 6 + 20
 
         imagesH = mediaCount * (imgH + 20)
 
-        totalH = (margin                    # top margin
-                + profileH + 20            # avatar + gap
-                + 1 + 16                   # divider + gap
-                + titleH + 12              # title
-                + descH + 20              # description
-                + progressH + 20           # progress
-                + 1 + 16                   # divider
-                + (40 + imagesH if mediaCount else 0)  # images section
-                + margin)                  # bottom margin
+        totalH = (margin
+                + profileH + 20
+                + 1 + 16
+                + titleH + 12
+                + descH + 20
+                + progressH + 20
+                + 1 + 16
+                + (40 + imagesH if mediaCount else 0)
+                + margin)
 
         dummyPainter.end()
 
         CANVAS_H = int(totalH)
 
-        # ── Create actual image ───────────────────────────────────────────────────
         img = QImage(CANVAS_W, CANVAS_H, QImage.Format.Format_ARGB32)
         img.fill(QColor("#FFFFFF"))
         painter = QPainter(img)
@@ -1066,7 +1071,6 @@ class projectViewPage(QWidget):
         x = float(margin)
         y = float(margin)
 
-        # ── Helpers ───────────────────────────────────────────────────────────────
         def drawText(text, fontSize, bold, y, color=QColor("#111111"), indent=0, spacing=8, width=None):
             font = QFont("Segoe UI", fontSize)
             font.setBold(bold)
@@ -1083,7 +1087,7 @@ class projectViewPage(QWidget):
             painter.drawLine(int(x), int(y), int(x + contentW), int(y))
             return y + 16
 
-        # ── Avatar + profile ──────────────────────────────────────────────────────
+        # Avatar + profile
         if _AVATAR_FILE.exists():
             avatarPixmap = QPixmap(str(_AVATAR_FILE)).scaled(
                 avatarSize, avatarSize,
@@ -1116,13 +1120,13 @@ class projectViewPage(QWidget):
         y += max(avatarSize, nameBR.height() + 8 + 20) + 20
         y = drawDivider(y)
 
-        # ── Project title ─────────────────────────────────────────────────────────
+        # Project title
         y = drawText(self.project.title.upper(), 28, True, y, QColor("#111111"), spacing=12)
 
-        # ── Description ───────────────────────────────────────────────────────────
+        # Description
         y = drawText(self.project.description, 13, False, y, QColor("#555555"), spacing=20)
 
-        # ── Progress ──────────────────────────────────────────────────────────────
+        # Progress
         progress = self.project.getProgress()
 
         labelFont = QFont("Segoe UI", 11)
@@ -1149,7 +1153,7 @@ class projectViewPage(QWidget):
 
         y = drawDivider(y)
 
-        # ── Images ────────────────────────────────────────────────────────────────
+        # Images
         if self.project.media:
             y = drawText("Images", 11, True, y, QColor("#111111"), spacing=14)
 
@@ -1176,13 +1180,12 @@ class projectViewPage(QWidget):
 
         painter.end()
 
-        # ── Save ──────────────────────────────────────────────────────────────────
+        # Save
         if asPdf:
             printer = QPrinter(QPrinter.PrinterMode.HighResolution)
             printer.setOutputFormat(QPrinter.OutputFormat.PdfFormat)
             printer.setOutputFileName(filePath)
 
-            # Set custom page size to match our image exactly
             pageSizeMM = QSizeF(CANVAS_W * 25.4 / 96, CANVAS_H * 25.4 / 96)
             printer.setPageSize(QPageSize(pageSizeMM, QPageSize.Unit.Millimeter))
             printer.setPageMargins(QMarginsF(0, 0, 0, 0))
@@ -1259,3 +1262,7 @@ class projectViewPage(QWidget):
             self.renderImage(media)
 
         self.setActiveTab(0)
+
+    def save(self):
+        if self.storage and self.project:
+            self.storage.saveProject(self.project)

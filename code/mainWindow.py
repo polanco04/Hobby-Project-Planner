@@ -1,31 +1,33 @@
-from qfluentwidgets import (
-    FluentWindow, NavigationItemPosition, toggleTheme, NavigationToolButton
-)
+from qfluentwidgets import FluentWindow, NavigationItemPosition, toggleTheme, NavigationToolButton
 from qfluentwidgets import FluentIcon as FIF
 from pages import homePage, projectPage, profilePage, projectViewPage
 from classes.Hobbyist import Hobbyist
+from classes.LocalStorage import LocalStorage
+
 class MainWindow(FluentWindow):
     def __init__(self):
         super().__init__()
-        
-        self.hobbyist = Hobbyist("User")
+
         self.setWindowTitle("Hobby Project Planner")
         self.resize(600, 400)
 
-        # Create pages
-        self.homePage = homePage(self, self.hobbyist)
-        self.projectPage = projectPage(self.hobbyist)
-        self.profilePage = profilePage(self.hobbyist)
-        self.projectViewPage = projectViewPage()
+        self.storage = LocalStorage()
+        self.hobbyist = self.storage.loadHobbyist()
+        if self.hobbyist is None:
+            self.hobbyist = Hobbyist("User")
+            self.storage.saveHobbyist(self.hobbyist)
 
-        # Add to Fluent navigation
+        self.homePage = homePage(self, self.hobbyist)
+        self.projectPage = projectPage(self.hobbyist, self.storage)
+        self.profilePage = profilePage(self.hobbyist, self.storage)
+        self.projectViewPage = projectViewPage(self.storage)
+
         self.addSubInterface(self.homePage, FIF.HOME, "Home")
         self.addSubInterface(self.projectPage, FIF.FOLDER, "Projects")
         self.addSubInterface(self.profilePage, FIF.PEOPLE, "Profile")
         self.stackedWidget.addWidget(self.projectViewPage)
         self.navigationInterface.setReturnButtonVisible(False)
 
-        # Add theme toggle — connect via signal only, no onClick param
         self.themeButton = NavigationToolButton(FIF.CONSTRACT, self)
         self.navigationInterface.addWidget(
             routeKey="themeToggle",
@@ -36,3 +38,7 @@ class MainWindow(FluentWindow):
 
     def toggleAppTheme(self):
         toggleTheme(lazy=True)
+
+    def closeEvent(self, event):
+        self.storage.close()
+        super().closeEvent(event)

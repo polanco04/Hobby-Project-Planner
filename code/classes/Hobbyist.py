@@ -33,9 +33,6 @@ class Hobbyist:
 
     def setProfilePicture(self, filePath: str):
         self.profilePicture = filePath
-        
-    def shareProject(self, project: Project):
-        pass  # implement sharing logic later
 
     def allProjects(self) -> list[Project]:
         return self.projects

@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QSizePolicy
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 from qfluentwidgets import (
-    BodyLabel, CardWidget, SubtitleLabel, TitleLabel, PrimaryPushButton, 
+    BodyLabel, CardWidget, SubtitleLabel, TitleLabel, PrimaryPushButton,
     HorizontalSeparator, IconWidget, InfoBar, InfoBarPosition, PushButton,
     MessageBox
 )
@@ -32,14 +32,15 @@ FEATURE_CARDS = {
 }
 
 class projectPage(QWidget):
-    def __init__(self, hobbyist: Hobbyist):
+    def __init__(self, hobbyist: Hobbyist, storage=None):
         super().__init__()
         self.hobbyist = hobbyist
+        self.storage = storage
         self.setObjectName("projectPage")
-        
+
         outer = QVBoxLayout(self)
         outer.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
-        outer.setContentsMargins(40, 0, 40, 0) 
+        outer.setContentsMargins(40, 0, 40, 0)
 
         container = QWidget()
         container.setMaximumWidth(1000)
@@ -48,11 +49,10 @@ class projectPage(QWidget):
         mainLayout = QVBoxLayout(container)
         mainLayout.setContentsMargins(40, 40, 40, 40)
         mainLayout.setSpacing(30)
-        
-        # Header row
+
         headerRow = QHBoxLayout()
         headerRow.addWidget(TitleLabel("Projects"))
-        headerRow.addStretch() 
+        headerRow.addStretch()
         btn = PrimaryPushButton("+ New Project")
         btn.clicked.connect(self.openNewProjectDialog)
         btn.setFixedWidth(150)
@@ -64,7 +64,7 @@ class projectPage(QWidget):
         self.projectsContainer.setSpacing(10)
         mainLayout.addLayout(self.projectsContainer)
 
-        mainLayout.addStretch() 
+        mainLayout.addStretch()
         mainLayout.addWidget(HorizontalSeparator())
 
         self.featureRow = QHBoxLayout()
@@ -72,23 +72,25 @@ class projectPage(QWidget):
         mainLayout.addLayout(self.featureRow)
 
         outer.addWidget(container)
-
         self.refreshProjects()
 
     def showEvent(self, event):
         super().showEvent(event)
         self.refreshFeatureCards()
-    
+
     def openNewProjectDialog(self):
         dialog = NewProjectDialog(self.window())
         if dialog.exec():
             values = dialog.getValues()
             try:
-                self.hobbyist.createProject(
+                project = self.hobbyist.createProject(
                     values["title"],
                     values["description"],
                     values["deadline"]
                 )
+                if self.storage:
+                    self.storage.saveProject(project)
+                    self.storage.saveHobbyist(self.hobbyist)
                 self.refreshProjects()
             except Exception as e:
                 InfoBar.warning(
@@ -124,7 +126,7 @@ class projectPage(QWidget):
     def createNpCard(self):
         card = CardWidget()
         layout = QVBoxLayout(card)
-        layout.setAlignment(Qt.AlignmentFlag.AlignCenter) 
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.setContentsMargins(40, 40, 40, 40)
         layout.setSpacing(10)
 
@@ -215,6 +217,8 @@ class projectPage(QWidget):
                 description=values["description"],
                 deadline=values["deadline"]
             )
+            if self.storage:
+                self.storage.saveProject(project)
             self.refreshProjects()
 
     def deleteProject(self, project):
@@ -225,5 +229,7 @@ class projectPage(QWidget):
         )
         if dialog.exec():
             self.hobbyist.deleteProject(project.projectId)
+            if self.storage:
+                self.storage.deleteProject(project.projectId)
+                self.storage.saveHobbyist(self.hobbyist)
             self.refreshProjects()
-        

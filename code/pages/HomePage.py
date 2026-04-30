@@ -5,6 +5,25 @@ from qfluentwidgets import (
     BodyLabel, CardWidget, SubtitleLabel, TitleLabel, PrimaryPushButton,
     HorizontalSeparator, CaptionLabel, PushButton
 )
+import random
+
+FEATURE_CARDS = {
+    "Organize your tasks": [
+        "homeImages/tasks1.jpg",
+        "homeImages/tasks2.jpg",
+        "homeImages/tasks3.jpg",
+    ],
+    "Track milestones": [
+        "homeImages/milestones1.jpg",
+        "homeImages/milestones2.jpg",
+        "homeImages/milestones3.jpg",
+    ],
+    "Document progress": [
+        "homeImages/notes1.jpg",
+        "homeImages/notes2.jpg",
+        "homeImages/notes3.jpg",
+    ],
+}
 
 class homePage(QWidget):
     def __init__(self, mainWindow=None, hobbyist=None):
@@ -32,12 +51,9 @@ class homePage(QWidget):
         self.mainLayout.addStretch()
         self.mainLayout.addWidget(HorizontalSeparator())
 
-        featureRow = QHBoxLayout()
-        featureRow.setSpacing(20)
-        featureRow.addWidget(self.createFeatureCard("homeImages/tasks.jpg", "Organize your tasks"))
-        featureRow.addWidget(self.createFeatureCard("homeImages/milestones.jpg", "Track milestones"))
-        featureRow.addWidget(self.createFeatureCard("homeImages/notes.jpg", "Document progress"))
-        self.mainLayout.addLayout(featureRow)
+        self.featureRow = QHBoxLayout()
+        self.featureRow.setSpacing(20)
+        self.mainLayout.addLayout(self.featureRow)
 
         outer.addWidget(container)
 
@@ -46,6 +62,7 @@ class homePage(QWidget):
     def showEvent(self, event):
         super().showEvent(event)
         self.refreshHome()
+        self.refreshFeatureCards()
 
     def refreshHome(self):
         self.topWidget.deleteLater()
@@ -168,3 +185,13 @@ class homePage(QWidget):
         wrapperLayout.addWidget(card)
         wrapperLayout.addWidget(captionLabel)
         return wrapper
+    
+    def refreshFeatureCards(self):
+        while self.featureRow.count():
+            item = self.featureRow.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+
+        for caption, images in FEATURE_CARDS.items():
+            image = random.choice(images)
+            self.featureRow.addWidget(self.createFeatureCard(image, caption))

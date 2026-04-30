@@ -7,14 +7,13 @@ from qfluentwidgets import (
     SubtitleLabel, StrongBodyLabel, BodyLabel,
     LineEdit, TextEdit, PrimaryPushButton, PushButton, CardWidget, FluentIcon as FIF
 )
+from utils import getAppDataDir
 
-_DATA_DIR = Path(__file__).parent.parent.parent / "data"
+_DATA_DIR = Path(getAppDataDir())
 _AVATAR_FILE = _DATA_DIR / "avatar.png"
 
 
 class AvatarLabel(QLabel):
-    """Circular avatar; clicking it opens a file picker when in edit mode."""
-
     def __init__(self, size=96, parent=None):
         super().__init__(parent)
         self._size = size
@@ -45,8 +44,8 @@ class AvatarLabel(QLabel):
                 self._pixmap = QPixmap(str(_AVATAR_FILE))
                 self.update()
                 page = self.parent().parent()
-                if hasattr(page, "_updateRemoveBtn"):
-                    page._updateRemoveBtn()
+                if hasattr(page, "updateRemoveBtn"):
+                    page.updateRemoveBtn()
 
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -76,10 +75,11 @@ class AvatarLabel(QLabel):
 
 
 class profilePage(QWidget):
-    def __init__(self, hobbyist=None):
+    def __init__(self, hobbyist=None, storage=None):
         super().__init__()
         self.setObjectName("profilePage")
-        self.hobbyist = hobbyist  # ← use hobbyist instead of JSON
+        self.hobbyist = hobbyist
+        self.storage = storage
         self._editing = False
 
         outer = QVBoxLayout(self)
@@ -99,20 +99,16 @@ class profilePage(QWidget):
         avatarRow = QVBoxLayout()
         avatarRow.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         self.avatar = AvatarLabel(96, card)
-
-        # load avatar from hobbyist.profilePicture or fallback to saved file
-        self._loadAvatar()
-
+        self.loadAvatar()
         avatarRow.addWidget(self.avatar, alignment=Qt.AlignmentFlag.AlignHCenter)
 
-        self._removePhotoBtn = PushButton("Remove Photo")
-        self._removePhotoBtn.setFixedWidth(120)
-        self._removePhotoBtn.clicked.connect(self._removePhoto)
-        self._removePhotoBtn.hide()
-        avatarRow.addWidget(self._removePhotoBtn, alignment=Qt.AlignmentFlag.AlignHCenter)
+        self.removePhotoBtn = PushButton("Remove Photo")
+        self.removePhotoBtn.setFixedWidth(120)
+        self.removePhotoBtn.clicked.connect(self.removePhoto)
+        self.removePhotoBtn.hide()
+        avatarRow.addWidget(self.removePhotoBtn, alignment=Qt.AlignmentFlag.AlignHCenter)
         cardLayout.addLayout(avatarRow)
 
-        # ── View mode ────────────────────────────────────────────────────────
         self._viewWidget = QWidget()
         viewLayout = QVBoxLayout(self._viewWidget)
         viewLayout.setContentsMargins(0, 0, 0, 0)
@@ -130,7 +126,6 @@ class profilePage(QWidget):
         self._bioDisplay.setTextInteractionFlags(Qt.TextInteractionFlag.NoTextInteraction)
         viewLayout.addWidget(self._bioDisplay)
 
-        # ── Edit mode ────────────────────────────────────────────────────────
         self._editWidget = QWidget()
         self._editWidget.hide()
         editLayout = QVBoxLayout(self._editWidget)
@@ -155,14 +150,13 @@ class profilePage(QWidget):
         cardLayout.addWidget(self._editWidget)
 
         self._editBtn = PrimaryPushButton("Edit Profile")
-        self._editBtn.clicked.connect(self._toggleEdit)
+        self._editBtn.clicked.connect(self.toggleEdit)
         cardLayout.addWidget(self._editBtn)
 
         outer.addWidget(card)
         outer.addStretch()
 
-    def _loadAvatar(self):
-        # use hobbyist.profilePicture if set, otherwise fall back to saved avatar file
+    def loadAvatar(self):
         if self.hobbyist and self.hobbyist.profilePicture:
             pixmap = QPixmap(self.hobbyist.profilePicture)
             if not pixmap.isNull():
@@ -171,13 +165,13 @@ class profilePage(QWidget):
         if _AVATAR_FILE.exists():
             self.avatar.setPixmap(QPixmap(str(_AVATAR_FILE)))
 
-    def _toggleEdit(self):
+    def toggleEdit(self):
         if not self._editing:
             self._editing = True
             self._usernameEdit.setText(self._usernameDisplay.text())
             self._bioEdit.setPlainText(self._bioDisplay.text())
             self.avatar.setEditMode(True)
-            self._updateRemoveBtn()
+            self.updateRemoveBtn()
             self._viewWidget.hide()
             self._editWidget.show()
             self._editBtn.setText("Save Profile")
@@ -186,31 +180,39 @@ class profilePage(QWidget):
             username = self._usernameEdit.text().strip()
             bio = self._bioEdit.toPlainText().strip()
 
-            # save to hobbyist object instead of JSON
             if self.hobbyist:
                 self.hobbyist.setUsername(username)
                 self.hobbyist.setBio(bio)
                 if _AVATAR_FILE.exists():
                     self.hobbyist.setProfilePicture(str(_AVATAR_FILE))
+                if self.storage:
+                    self.storage.saveHobbyist(self.hobbyist)  
 
             self._usernameDisplay.setText(username)
             self._bioDisplay.setText(bio)
-
-            self._loadAvatar()
+            self.loadAvatar()
             self.avatar.setEditMode(False)
-            self._removePhotoBtn.hide()
+            self.removePhotoBtn.hide()
             self._editWidget.hide()
             self._viewWidget.show()
             self._editBtn.setText("Edit Profile")
 
-    def _updateRemoveBtn(self):
-        self._removePhotoBtn.setVisible(_AVATAR_FILE.exists())
+    def updateRemoveBtn(self):
+        self.removePhotoBtn.setVisible(_AVATAR_FILE.exists())
 
-    def _removePhoto(self):
-        if _AVATAR_FILE.exists():
-            _AVATAR_FILE.unlink()
-        if self.hobbyist:
-            self.hobbyist.profilePicture = None
+    def removePhoto(self):
         self.avatar._pixmap = None
         self.avatar.update()
-        self._removePhotoBtn.hide()
+        
+        if _AVATAR_FILE.exists():
+            try:
+                _AVATAR_FILE.unlink()
+            except PermissionError:
+                _AVATAR_FILE.rename(_AVATAR_FILE.with_suffix(".bak"))
+        
+        if self.hobbyist:
+            self.hobbyist.profilePicture = None
+            if self.storage:
+                self.storage.saveHobbyist(self.hobbyist)
+
+        self.removePhotoBtn.hide()

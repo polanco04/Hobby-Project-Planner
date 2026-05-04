@@ -33,7 +33,7 @@ class Project:
         if len(self.tasks) >= 15:
             raise Exception("Cannot have more than 15 tasks")
         
-        task.taskId = self.taskId
+        task.taskId = self.projectId * 1000 + self.taskId
         self.taskId += 1
         self.tasks.append(task)
 
@@ -49,7 +49,7 @@ class Project:
         if len(self.milestones) >= 5:
             raise Exception("Cannot have more than 5 milestones")
         
-        milestone.milestoneId = self.milestoneId
+        milestone.milestoneId = self.projectId * 1000 + self.milestoneId
         self.milestoneId += 1
         self.milestones.append(milestone)
     
@@ -61,10 +61,10 @@ class Project:
         raise Exception(f"Milestone {milestoneId} not found")
     
     def addMedia(self, media: Media):
-        if len(self.media) >= 5:
-            raise Exception("Cannot have more than 5 photos")
+        if len(self.media) >= 6:
+            raise Exception("Cannot have more than 6 photos")
         
-        media.mediaId = self.mediaId
+        media.mediaId = self.projectId * 1000 + self.mediaId
         self.mediaId += 1
         self.media.append(media)
 
@@ -87,15 +87,20 @@ class Project:
         if not self.tasks:
             return 0.0
         
-        tasksCompleted = 0
-
-        for task in self.tasks:
-            if task.dateCompleted:
-                tasksCompleted += 1
-
+        tasksCompleted = sum(1 for t in self.tasks if t.dateCompleted)
         self.progress = (tasksCompleted / len(self.tasks)) * 100
 
-        return self.progress 
+        if self.status != ProjectStatus.ON_HOLD:
+            if self.progress == 100:
+                self.status = ProjectStatus.COMPLETED
+                if not self.dateCompleted:
+                    self.dateCompleted = datetime.now()
+            elif self.progress > 0:
+                self.status = ProjectStatus.IN_PROGRESS
+            else:
+                self.status = ProjectStatus.PLANNING
+
+        return self.progress
     
     def completedTasks(self):
         completed = []

@@ -2,6 +2,11 @@ import sqlite3
 import os
 from datetime import datetime
 from utils import getAppDataDir
+from classes.Hobbyist import Hobbyist
+from classes.Project import Project, ProjectStatus
+from classes.Task import Task
+from classes.Milestone import Milestone
+from classes.Media import Media
 
 class LocalStorage:
     def __init__(self):
@@ -97,7 +102,6 @@ class LocalStorage:
         self.conn.commit()
 
     def loadHobbyist(self):
-        from classes.Hobbyist import Hobbyist
         row = self.conn.execute("SELECT * FROM hobbyist WHERE id = 1").fetchone()
         if not row:
             return None
@@ -153,7 +157,6 @@ class LocalStorage:
         self.conn.commit()
 
     def loadProjects(self):
-        from classes.Project import Project, ProjectStatus
         rows = self.conn.execute("SELECT * FROM projects").fetchall()
         projects = []
         for row in rows:
@@ -206,7 +209,6 @@ class LocalStorage:
         ))
 
     def loadTasks(self, projectId: int):
-        from classes.Task import Task
         rows = self.conn.execute(
             "SELECT * FROM tasks WHERE projectId = ?", (projectId,)
         ).fetchall()
@@ -260,7 +262,6 @@ class LocalStorage:
             )
 
     def loadMilestones(self, projectId: int, tasks: list):
-        from classes.Milestone import Milestone
         rows = self.conn.execute(
             "SELECT * FROM milestones WHERE projectId = ?", (projectId,)
         ).fetchall()
@@ -320,7 +321,6 @@ class LocalStorage:
         ))
 
     def loadMedia(self, projectId: int):
-        from classes.Media import Media
         rows = self.conn.execute(
             "SELECT * FROM media WHERE projectId = ?", (projectId,)
         ).fetchall()

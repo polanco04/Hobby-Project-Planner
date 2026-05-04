@@ -1,5 +1,4 @@
 from .Project import Project 
-from .ProjectExporter import ProjectExporter
 from datetime import datetime
 
 class Hobbyist:

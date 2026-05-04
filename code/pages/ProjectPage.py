@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QSizePolicy
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QSizePolicy, QLabel
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 from qfluentwidgets import (
@@ -11,6 +11,7 @@ from components.widgets import createFeatureCard
 from components.projectMessageBox import NewProjectDialog
 from components.editProjectDialog import EditProjectDialog
 from classes.Hobbyist import Hobbyist
+from classes.Project import ProjectStatus
 import random
 
 FEATURE_CARDS = {
@@ -29,6 +30,13 @@ FEATURE_CARDS = {
         "projectImages/ideas2.jpg",
         "projectImages/ideas3.jpg",
     ],
+}
+
+STATUS_COLORS = {
+    "planning":    ("#1A6FA8", "#E8F0FA"),
+    "in_progress": ("#B07D00", "#FFF8E1"),
+    "completed":   ("#2E7D32", "#E8F5E9"),
+    "on_hold":     ("#7B3F00", "#FBE9E7"),
 }
 
 class projectPage(QWidget):
@@ -169,6 +177,17 @@ class projectPage(QWidget):
             dateLabel.setStyleSheet("color: gray;")
             textLayout.addWidget(dateLabel)
 
+        # Status badge
+        statusVal = project.status.value
+        fg, bg = STATUS_COLORS.get(statusVal, ("#555555", "#EEEEEE"))
+        statusLabel = QLabel(statusVal.replace("_", " ").title())
+        statusLabel.setFont(QFont("Segoe UI", 9))
+        statusLabel.setStyleSheet(
+            f"color: {fg}; background: {bg}; border-radius: 8px; padding: 2px 8px;"
+        )
+        statusLabel.setFixedHeight(22)
+        textLayout.addWidget(statusLabel)
+
         btnRow = QVBoxLayout()
         btnRow.setSpacing(6)
 
@@ -179,6 +198,10 @@ class projectPage(QWidget):
         editBtn = PushButton("Edit")
         editBtn.setFixedWidth(80)
         editBtn.clicked.connect(lambda checked=False, p=project: self.editProject(p))
+
+        holdBtn = PushButton("On Hold" if project.status != ProjectStatus.ON_HOLD else "Resume")
+        holdBtn.setFixedWidth(80)
+        holdBtn.clicked.connect(lambda checked=False, p=project: self.toggleHold(p))
 
         deleteBtn = PushButton("Delete")
         deleteBtn.setFixedWidth(80)
@@ -195,6 +218,7 @@ class projectPage(QWidget):
 
         btnRow.addWidget(openBtn)
         btnRow.addWidget(editBtn)
+        btnRow.addWidget(holdBtn)
         btnRow.addWidget(deleteBtn)
 
         layout.addLayout(textLayout)
@@ -220,6 +244,25 @@ class projectPage(QWidget):
             if self.storage:
                 self.storage.saveProject(project)
             self.refreshProjects()
+
+    def toggleHold(self, project):
+        if project.status == ProjectStatus.ON_HOLD:
+            completed = sum(1 for t in project.tasks if t.dateCompleted)
+            total = len(project.tasks)
+            if total == 0:
+                project.status = ProjectStatus.PLANNING
+            elif completed == total:
+                project.status = ProjectStatus.COMPLETED
+            elif completed > 0:
+                project.status = ProjectStatus.IN_PROGRESS
+            else:
+                project.status = ProjectStatus.PLANNING
+        else:
+            project.status = ProjectStatus.ON_HOLD
+
+        if self.storage:
+            self.storage.saveProject(project)
+        self.refreshProjects()
 
     def deleteProject(self, project):
         dialog = MessageBox(

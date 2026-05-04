@@ -1,27 +1,35 @@
 from qfluentwidgets import FluentWindow, NavigationItemPosition, toggleTheme, NavigationToolButton
 from qfluentwidgets import FluentIcon as FIF
+from PyQt6.QtWidgets import QApplication
 from pages import homePage, projectPage, profilePage, projectViewPage
 from classes.Hobbyist import Hobbyist
 from classes.LocalStorage import LocalStorage
 
 class MainWindow(FluentWindow):
-    def __init__(self):
+    def __init__(self, isFirstTime=False):
         super().__init__()
 
         self.setWindowTitle("Hobby Project Planner")
-        self.resize(600, 400)
+        self.resize(1000, 700)
+        self.setMinimumSize(600, 500)
 
+        screen = QApplication.primaryScreen().availableGeometry()
+        frameGeo = self.frameGeometry()
+        frameGeo.moveCenter(screen.center())
+        frameGeo.setTop(max(frameGeo.top(), screen.top()))
+        frameGeo.setLeft(max(frameGeo.left(), screen.left()))
+        self.move(frameGeo.topLeft())
         self.storage = LocalStorage()
         self.hobbyist = self.storage.loadHobbyist()
         if self.hobbyist is None:
             self.hobbyist = Hobbyist("User")
             self.storage.saveHobbyist(self.hobbyist)
 
-        self.homePage = homePage(self, self.hobbyist)
+        self.homePage = homePage(self, self.hobbyist, isFirstTime)
         self.projectPage = projectPage(self.hobbyist, self.storage)
         self.profilePage = profilePage(self.hobbyist, self.storage)
         self.projectViewPage = projectViewPage(self.storage)
-
+        
         self.addSubInterface(self.homePage, FIF.HOME, "Home")
         self.addSubInterface(self.projectPage, FIF.FOLDER, "Projects")
         self.addSubInterface(self.profilePage, FIF.PEOPLE, "Profile")

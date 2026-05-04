@@ -5,18 +5,19 @@ from PyQt6.QtWidgets import (
     QFrame, QHBoxLayout, QLabel, QListWidget, QListWidgetItem,
     QPushButton, QSizePolicy, QStackedWidget, QWidget, QVBoxLayout,
     QCheckBox, QFileDialog, QGridLayout, QDateEdit,
-    QDialog, QDialogButtonBox, QLineEdit,
+    QDialog, QDialogButtonBox, QLineEdit, QLayout
 )
 from PyQt6.QtPrintSupport import QPrinter
-from PyQt6.QtCore import QEvent, Qt, QDate, QRectF, QSizeF, QMarginsF 
+from PyQt6.QtCore import QEvent, Qt, QDate, QRectF, QSizeF, QMarginsF, QPointF 
 from PyQt6.QtGui import (
     QFont, QPixmap, QPainter, QPageSize, QColor, 
-    QPainterPath, QPen, QImage, QPageSize, 
+    QPainterPath, QPen, QImage, QPageSize, QPolygonF 
     )
 from PyQt6.QtPrintSupport import QPrinter
 from qfluentwidgets import (
     SubtitleLabel, BodyLabel, StrongBodyLabel, CardWidget,
     PrimaryPushButton, LineEdit, InfoBar, InfoBarPosition, isDarkTheme,
+    CheckBox, ScrollArea, qconfig 
 )
 from classes.Task import Task
 from classes.Milestone import Milestone
@@ -98,8 +99,7 @@ class projectViewPage(QWidget):
         self.contentStack.addWidget(self.imagesPage)
         self.contentStack.addWidget(self.exportPage)
 
-        layout.addWidget(self.contentStack)
-        layout.addStretch()
+        layout.addWidget(self.contentStack, 1) 
 
         self.taskTab.clicked.connect(lambda: self.setActiveTab(0))
         self.milestonesTab.clicked.connect(lambda: self.setActiveTab(1))
@@ -241,6 +241,7 @@ class projectViewPage(QWidget):
             self.save()
             self.renderTask(task)
             self.taskInput.clear()
+            self.syncProjectStatus()
         except Exception as e:
             InfoBar.warning(title="Couldn't add task", content=str(e), parent=self,
                             duration=3000, position=InfoBarPosition.TOP)
@@ -254,24 +255,12 @@ class projectViewPage(QWidget):
         rowLayout.setContentsMargins(4, 4, 4, 4)
         rowLayout.setSpacing(10)
 
-        checkbox = QCheckBox(task.name)
-        if isDarkTheme():
-            checkbox.setStyleSheet(
-                "QCheckBox { color: #FFFFFF; font-weight: 500; }"
-                "QCheckBox::indicator { width: 18px; height: 18px; border: 2px solid #FFFFFF; border-radius: 4px; background: transparent; }"
-                "QCheckBox::indicator:checked { background-color: #FFFFFF; }"
-            )
-        else:
-            checkbox.setStyleSheet(
-                "QCheckBox { color: #202020; font-weight: 500; }"
-                "QCheckBox::indicator { width: 18px; height: 18px; border: 2px solid #202020; border-radius: 4px; background: transparent; }"
-                "QCheckBox::indicator:checked { background-color: #202020; }"
-            )
-
+        checkbox = CheckBox(task.name)
         checkFont = QFont()
         checkFont.setPointSize(10)
         checkbox.setFont(checkFont)
         checkbox.setChecked(task.dateCompleted is not None)
+
         if task.dateCompleted:
             font = checkbox.font()
             font.setStrikeOut(True)
@@ -289,6 +278,7 @@ class projectViewPage(QWidget):
                 cb.setFont(font)
                 self.save()
                 self.refreshMilestoneList()
+                self.syncProjectStatus()  
             except Exception as e:
                 InfoBar.warning(title="Couldn't update task", content=str(e), parent=self,
                                 duration=3000, position=InfoBarPosition.TOP)
@@ -376,6 +366,7 @@ class projectViewPage(QWidget):
             self.save()
             self.refreshTaskList()
             self.refreshMilestoneList()
+            self.syncProjectStatus()
         except Exception as e:
             InfoBar.warning(title="Couldn't delete task", content=str(e),
                             parent=self, duration=3000, position=InfoBarPosition.TOP)
@@ -510,32 +501,21 @@ class projectViewPage(QWidget):
         rowLayout.setContentsMargins(4, 4, 4, 4)
         rowLayout.setSpacing(10)
 
-        checkbox = QCheckBox()
-        checkbox.setChecked(milestone.isReached())
-        if isDarkTheme():
-            checkbox.setStyleSheet(
-                "QCheckBox::indicator { width: 18px; height: 18px; border: 2px solid #FFFFFF; border-radius: 4px; background: transparent; }"
-                "QCheckBox::indicator:checked { background-color: #FFFFFF; }"
-            )
-        else:
-            checkbox.setStyleSheet(
-                "QCheckBox::indicator { width: 18px; height: 18px; border: 2px solid #202020; border-radius: 4px; background: transparent; }"
-                "QCheckBox::indicator:checked { background-color: #202020; }"
-            )
-
-        def onChecked(state, m=milestone):
-            if state == Qt.CheckState.Checked.value:
-                m.markComplete()
-            else:
-                m.unmarkComplete()
-            self.refreshMilestoneList()
-
-        checkbox.stateChanged.connect(onChecked)
+        statusDot = QLabel("●")
+        statusDot.setFont(QFont("Segoe UI", 14))
+        statusDot.setStyleSheet(
+            f"color: {'#2E7D32' if milestone.isReached() else '#AAAAAA'};"
+        )
 
         infoLayout = QVBoxLayout()
         infoLayout.setSpacing(2)
 
         titleLabel = BodyLabel(milestone.name)
+        if milestone.isReached():
+            f = titleLabel.font()
+            f.setStrikeOut(True)
+            titleLabel.setFont(f)
+
         dateLabel = BodyLabel(milestone.deadline.strftime("%Y-%m-%d"))
         smallFont = QFont()
         smallFont.setPointSize(9)
@@ -585,7 +565,7 @@ class projectViewPage(QWidget):
         btnCol.setSpacing(4)
         btnCol.addLayout(btnRow)
 
-        rowLayout.addWidget(checkbox)
+        rowLayout.addWidget(statusDot)
         rowLayout.addLayout(infoLayout)
         rowLayout.addStretch()
         rowLayout.addLayout(btnCol)
@@ -758,12 +738,30 @@ class projectViewPage(QWidget):
 
     def createImagesTab(self):
         page = CardWidget()
+        page.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        
         pageLayout = QVBoxLayout(page)
-        pageLayout.setContentsMargins(24, 24, 24, 24)
-        pageLayout.setSpacing(16)
+        pageLayout.setContentsMargins(0, 0, 0, 0)
+
+        scrollArea = ScrollArea(page)
+        scrollArea.setWidgetResizable(True)
+        scrollArea.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        scrollArea.setStyleSheet("background: transparent; border: none;")
+
+        self.imageGridContainer = QWidget()
+        self.imageGridContainer.setStyleSheet("background: transparent;")
+        self.imageGridContainer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+
+        self.imageGrid = QGridLayout(self.imageGridContainer)
+        self.imageGrid.setSpacing(30)
+        self.imageGrid.setContentsMargins(24, 24, 24, 24)
+        self.imageGrid.setColumnStretch(0, 1)
+        self.imageGrid.setColumnStretch(1, 1)
+        self.imageGrid.setColumnStretch(2, 1)
+        self.imageGrid.setRowStretch(999, 1) 
 
         self.uploadButton = QPushButton("↑\nClick to upload an image")
-        self.uploadButton.setFixedSize(280, 200)  # match image size exactly
+        self.uploadButton.setFixedSize(280, 200)
         self.uploadButton.setCursor(Qt.CursorShape.PointingHandCursor)
         self.uploadButton.setStyleSheet(
             "QPushButton { border: 2px dashed #AAAAAA; border-radius: 10px;"
@@ -771,17 +769,13 @@ class projectViewPage(QWidget):
             "QPushButton:hover { border-color: #555555; color: #555555; }"
         )
         self.uploadButton.clicked.connect(self.uploadImage)
+        self.imageGrid.addWidget(
+            self.uploadButton, 0, 0,
+            Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignHCenter
+        )
 
-        self.imageGridContainer = QWidget()
-        self.imageGridContainer.setStyleSheet("background: transparent;")
-        self.imageGrid = QGridLayout(self.imageGridContainer)
-        self.imageGrid.setSpacing(20)
-        self.imageGrid.setContentsMargins(0, 0, 0, 0)
-        self.imageGrid.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
-        self.imageGrid.addWidget(self.uploadButton, 0, 0)
-
-        pageLayout.addWidget(self.imageGridContainer)
-        pageLayout.addStretch()
+        scrollArea.setWidget(self.imageGridContainer)
+        pageLayout.addWidget(scrollArea)
 
         return page
 
@@ -826,30 +820,40 @@ class projectViewPage(QWidget):
         IMG_W = 280
         IMG_H = 200
 
-        pixmap = media.getPixmap().scaled(
+        pixmap = media.getPixmap()
+        if pixmap is None or pixmap.isNull():
+            return 
+        
+        pixmap = pixmap.scaled(
             IMG_W, IMG_H,
-            Qt.AspectRatioMode.KeepAspectRatio,  # ← changed, no crop needed
+            Qt.AspectRatioMode.KeepAspectRatio,  
             Qt.TransformationMode.SmoothTransformation
         )
 
         cellWidget = QWidget()
         cellWidget.setFixedWidth(IMG_W)
         cellWidget.setStyleSheet("background: transparent;")
+        
         cellLayout = QVBoxLayout(cellWidget)
         cellLayout.setContentsMargins(0, 0, 0, 0)
         cellLayout.setSpacing(8)
+        cellLayout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         imgContainer = QWidget()
         imgContainer.setFixedSize(IMG_W, IMG_H)
         imgContainer.setStyleSheet("background: transparent;")
+        
+        imgContainerLayout = QVBoxLayout(imgContainer)
+        imgContainerLayout.setContentsMargins(0, 0, 0, 0)
 
-        imgLabel = QLabel(imgContainer)
+        imgLabel = QLabel()
         imgLabel.setPixmap(pixmap)
-        imgLabel.setGeometry(0, 0, IMG_W, IMG_H)
-        imgLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)  # centers the image in the slot
+        imgLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
         imgLabel.setStyleSheet("background: transparent;")
         imgLabel.setCursor(Qt.CursorShape.PointingHandCursor)
         imgLabel.mousePressEvent = lambda e, m=media: self.showFullImage(m)
+        
+        imgContainerLayout.addWidget(imgLabel)
 
         deleteBtn = QPushButton("✕", imgContainer)
         deleteBtn.setFixedSize(26, 26)
@@ -868,27 +872,45 @@ class projectViewPage(QWidget):
         nameLabel.setFont(QFont("Segoe UI", 10))
         nameLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
         nameLabel.setWordWrap(True)
-        nameLabel.setMaximumWidth(IMG_W)
-        nameLabel.setStyleSheet(
-            f"color: {'#CCCCCC' if isDarkTheme() else '#555555'}; background: transparent;"
-        )
+        nameLabel.setFixedWidth(IMG_W)
+
+        def updateNameLabelColor():
+            nameLabel.setStyleSheet(
+                f"color: {'#CCCCCC' if isDarkTheme() else '#555555'}; background: transparent;"
+            )
+
+        def disconnectNameLabel():
+            try:
+                qconfig.themeChanged.disconnect(updateNameLabelColor)
+            except RuntimeError:
+                pass
+
+        updateNameLabelColor()
+
+        qconfig.themeChanged.connect(updateNameLabelColor)
+        nameLabel.destroyed.connect(disconnectNameLabel)
 
         cellLayout.addWidget(imgContainer)
         cellLayout.addWidget(nameLabel)
+
+        cellWidget.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
 
         count = self.imageGrid.count()
         cols = 3
         gridRow = count // cols
         gridCol = count % cols
-        self.imageGrid.addWidget(cellWidget, gridRow, gridCol)
+        
+        self.imageGrid.addWidget(cellWidget, gridRow, gridCol, Qt.AlignmentFlag.AlignTop)
 
     def deleteImage(self, media: Media):
         try:
-            self.project.removeMedia(media.mediaId)
+            mediaId = media.mediaId
+            self.project.removeMedia(mediaId)
+            if self.storage:
+                self.storage.deleteMedia(mediaId)
             media.delete()
             self.save()
 
-            # rebuild the image grid
             while self.imageGrid.count() > 1:
                 item = self.imageGrid.takeAt(1)
                 if item.widget():
@@ -1018,48 +1040,9 @@ class projectViewPage(QWidget):
             profile["username"] = mainWindow.hobbyist.username or ""
             profile["bio"] = mainWindow.hobbyist.bio or ""
 
-        CANVAS_W = 1080
+        CANVAS_W, CANVAS_H = 1080, 1920
         margin = 60
         contentW = CANVAS_W - margin * 2
-
-        dummy = QImage(1, 1, QImage.Format.Format_ARGB32)
-        dummyPainter = QPainter(dummy)
-
-        def measureText(text, fontSize, bold, width, indent=0):
-            font = QFont("Segoe UI", fontSize)
-            font.setBold(bold)
-            dummyPainter.setFont(font)
-            rect = QRectF(0, 0, width - indent, 9999)
-            br = dummyPainter.boundingRect(rect, Qt.TextFlag.TextWordWrap, text)
-            return br.height()
-
-        avatarSize = 120
-        profileH = max(avatarSize, measureText(profile.get("username",""), 22, True, contentW - avatarSize - 16)
-                                + measureText(profile.get("bio",""), 13, False, contentW - avatarSize - 16) + 8)
-
-        imgW = int(contentW * 0.38)
-        imgH = int(imgW * 0.7)
-        mediaCount = len(self.project.media) if self.project.media else 0
-
-        titleH = measureText(self.project.title.upper(), 28, True, contentW)
-        descH = measureText(self.project.description, 13, False, contentW)
-        progressH = 18 + 6 + 20
-
-        imagesH = mediaCount * (imgH + 20)
-
-        totalH = (margin
-                + profileH + 20
-                + 1 + 16
-                + titleH + 12
-                + descH + 20
-                + progressH + 20
-                + 1 + 16
-                + (40 + imagesH if mediaCount else 0)
-                + margin)
-
-        dummyPainter.end()
-
-        CANVAS_H = int(totalH)
 
         img = QImage(CANVAS_W, CANVAS_H, QImage.Format.Format_ARGB32)
         img.fill(QColor("#FFFFFF"))
@@ -1068,26 +1051,64 @@ class projectViewPage(QWidget):
         painter.setRenderHint(QPainter.RenderHint.TextAntialiasing)
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
 
+        # Clip everything to canvas
+        painter.setClipRect(0, 0, CANVAS_W, CANVAS_H)
+
         x = float(margin)
         y = float(margin)
 
-        def drawText(text, fontSize, bold, y, color=QColor("#111111"), indent=0, spacing=8, width=None):
+        def drawText(text, fontSize, bold, ypos, color=QColor("#111111"), indent=0, spacing=6, width=None):
             font = QFont("Segoe UI", fontSize)
             font.setBold(bold)
             painter.setFont(font)
             painter.setPen(color)
             w = (width if width else contentW) - indent
-            rect = QRectF(x + indent, y, w, 9999)
+            rect = QRectF(x + indent, ypos, w, 9999)
             br = painter.boundingRect(rect, Qt.TextFlag.TextWordWrap, text)
             painter.drawText(rect, Qt.TextFlag.TextWordWrap, text)
-            return y + br.height() + spacing
+            return ypos + br.height() + spacing
 
-        def drawDivider(y):
+        def drawStrikeText(text, fontSize, bold, ypos, color=QColor("#111111"), indent=0, spacing=6, width=None):
+            font = QFont("Segoe UI", fontSize)
+            font.setBold(bold)
+            font.setStrikeOut(True)
+            painter.setFont(font)
+            painter.setPen(color)
+            w = (width if width else contentW) - indent
+            rect = QRectF(x + indent, ypos, w, 9999)
+            br = painter.boundingRect(rect, Qt.TextFlag.TextWordWrap, text)
+            painter.drawText(rect, Qt.TextFlag.TextWordWrap, text)
+            return ypos + br.height() + spacing
+
+        def drawDivider(ypos):
             painter.setPen(QPen(QColor("#E0E0E0"), 1))
-            painter.drawLine(int(x), int(y), int(x + contentW), int(y))
-            return y + 16
+            painter.drawLine(int(x), int(ypos), int(x + contentW), int(ypos))
+            return ypos + 14
 
-        # Avatar + profile
+        def drawCheckmark(cx, cy, size=14, checked=True, color=QColor("#2B5CE6")):
+            painter.setPen(QPen(QColor("#CCCCCC"), 1.5))
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+            painter.drawRoundedRect(QRectF(cx, cy, size, size), 3, 3)
+            if checked:
+                painter.setBrush(color)
+                painter.setPen(Qt.PenStyle.NoPen)
+                painter.drawRoundedRect(QRectF(cx, cy, size, size), 3, 3)
+                pen = QPen(QColor("#FFFFFF"), 2.0)
+                pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+                pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+                painter.setPen(pen)
+                # Draw checkmark polyline: 2,6 -> 5,9 -> 10,3 scaled
+                s = size / 12.0
+                pts = [
+                    (cx + 2*s, cy + 6*s),
+                    (cx + 5*s, cy + 9*s),
+                    (cx + 10*s, cy + 3*s),
+                ]
+                poly = QPolygonF([QPointF(px, py) for px, py in pts])
+                painter.drawPolyline(poly)
+
+        # ── Avatar + profile ──────────────────────────────────────────────────────
+        avatarSize = 160
         if _AVATAR_FILE.exists():
             avatarPixmap = QPixmap(str(_AVATAR_FILE)).scaled(
                 avatarSize, avatarSize,
@@ -1099,97 +1120,212 @@ class projectViewPage(QWidget):
             painter.setClipPath(path)
             painter.drawPixmap(int(x), int(y), avatarPixmap)
             painter.setClipping(False)
+            painter.setClipRect(0, 0, CANVAS_W, CANVAS_H)
 
-        textX = x + avatarSize + 16
-        textW = contentW - avatarSize - 16
+        textX = x + avatarSize + 24
+        textW = contentW - avatarSize - 24
+        nameFont = QFont("Segoe UI", 26); nameFont.setBold(True)
+        painter.setFont(nameFont); painter.setPen(QColor("#111111"))
+        nameRect = QRectF(textX, y + 20, textW, 9999)
+        nameBR = painter.boundingRect(nameRect, Qt.TextFlag.TextWordWrap, profile["username"])
+        painter.drawText(nameRect, Qt.TextFlag.TextWordWrap, profile["username"])
+        bioFont = QFont("Segoe UI", 15)
+        painter.setFont(bioFont); painter.setPen(QColor("#666666"))
+        bioY = y + 20 + nameBR.height() + 8
+        bioBR = painter.boundingRect(QRectF(textX, bioY, textW, 9999), Qt.TextFlag.TextWordWrap, profile["bio"])
+        painter.drawText(QRectF(textX, bioY, textW, 9999), Qt.TextFlag.TextWordWrap, profile["bio"])
 
-        nameFont = QFont("Segoe UI", 22)
-        nameFont.setBold(True)
-        painter.setFont(nameFont)
-        painter.setPen(QColor("#111111"))
-        nameRect = QRectF(textX, y + 18, textW, 9999)
-        nameBR = painter.boundingRect(nameRect, Qt.TextFlag.TextWordWrap, profile.get("username", ""))
-        painter.drawText(nameRect, Qt.TextFlag.TextWordWrap, profile.get("username", ""))
-
-        bioFont = QFont("Segoe UI", 13)
-        painter.setFont(bioFont)
-        painter.setPen(QColor("#666666"))
-        bioY = y + 18 + nameBR.height() + 6
-        painter.drawText(QRectF(textX, bioY, textW, 9999), Qt.TextFlag.TextWordWrap, profile.get("bio", ""))
-
-        y += max(avatarSize, nameBR.height() + 8 + 20) + 20
+        y += max(avatarSize, nameBR.height() + bioBR.height() + 40) + 28
         y = drawDivider(y)
 
-        # Project title
-        y = drawText(self.project.title.upper(), 28, True, y, QColor("#111111"), spacing=12)
-
-        # Description
-        y = drawText(self.project.description, 13, False, y, QColor("#555555"), spacing=20)
-
-        # Progress
-        progress = self.project.getProgress()
-
-        labelFont = QFont("Segoe UI", 11)
-        labelFont.setBold(True)
-        painter.setFont(labelFont)
-        painter.setPen(QColor("#111111"))
-        painter.drawText(QRectF(x, y, contentW, 9999), Qt.TextFlag.TextWordWrap, "Progress")
-        y += 22
-
-        barH = 10
-        painter.setPen(Qt.PenStyle.NoPen)
-        painter.setBrush(QColor("#EEEEEE"))
-        painter.drawRoundedRect(QRectF(x, y, contentW, barH), 5, 5)
-        if progress > 0:
-            painter.setBrush(QColor("#1A6FA8"))
-            painter.drawRoundedRect(QRectF(x, y, contentW * (progress / 100), barH), 5, 5)
-        y += barH + 6
-
-        pctFont = QFont("Segoe UI", 10)
-        painter.setFont(pctFont)
-        painter.setPen(QColor("#888888"))
-        painter.drawText(QRectF(x, y, contentW, 9999), Qt.TextFlag.TextWordWrap, f"{progress:.0f}% complete")
-        y += 20 + 20
+        # ── Title + description ───────────────────────────────────────────────────
+        y = drawText(self.project.title, 26, True, y, QColor("#111111"), spacing=8)
+        y = drawText(self.project.description, 15, False, y, QColor("#555555"), spacing=16)
 
         y = drawDivider(y)
 
-        # Images
+        # ── Tasks & Milestones side by side ───────────────────────────────────────
+        if self.project.tasks or self.project.milestones:
+            colW = (contentW - 24) // 2
+            leftX = x
+            rightX = x + colW + 24
+
+            progress = self.project.getProgress()
+            y += 10
+
+            labelFont = QFont("Segoe UI", 14); labelFont.setBold(True)
+            painter.setFont(labelFont); painter.setPen(QColor("#111111"))
+            painter.drawText(QRectF(x, y, contentW, 30), Qt.TextFlag.TextWordWrap, "Progress")
+            pctFont = QFont("Segoe UI", 13)
+            painter.setFont(pctFont); painter.setPen(QColor("#1A6FA8"))
+            painter.drawText(
+                QRectF(x, y, contentW, 30),
+                Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
+                f"{progress:.0f}%"
+            )
+            y += 36
+
+            barH = 16
+            barRadius = barH / 2
+
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(QColor("#E8EEF4"))
+            painter.drawRoundedRect(QRectF(x, y, contentW, barH), barRadius, barRadius)
+
+            if progress > 0:
+                fillW = contentW * (progress / 100)
+                painter.setBrush(QColor("#1A6FA8"))
+                painter.drawRoundedRect(QRectF(x, y, fillW, barH), barRadius, barRadius)
+
+                painter.setBrush(QColor(255, 255, 255, 35))
+                painter.drawRoundedRect(QRectF(x, y, fillW, barH / 2), barRadius, barRadius)
+
+            y += barH + 24
+
+        # ── Tasks & Milestones side by side ───────────────────────────────────────
+        if self.project.tasks or self.project.milestones:
+            colW = (contentW - 24) // 2
+            leftX = x
+            rightX = x + colW + 24
+
+            startY = y
+
+            # Left col: Tasks
+            leftY = startY
+            if self.project.tasks:
+                leftY = drawText("Tasks", 14, True, leftY, QColor("#111111"), width=colW, spacing=8)
+                BOX = 13
+                LINE_H = 20
+                for task in self.project.tasks:
+                    done = task.dateCompleted is not None
+                    # draw checkbox
+                    drawCheckmark(leftX, leftY + 3, BOX, checked=done,
+                                color=QColor("#2B5CE6"))
+                    # draw label (with or without strikethrough)
+                    font = QFont("Segoe UI", 12)
+                    font.setStrikeOut(done)
+                    painter.setFont(font)
+                    painter.setPen(QColor("#2B5CE6") if done else QColor("#333333"))
+                    painter.drawText(
+                        QRectF(leftX + BOX + 6, leftY, colW - BOX - 6, LINE_H),
+                        Qt.TextFlag.TextWordWrap, task.name
+                    )
+                    leftY += LINE_H + 2
+
+            # Right col: Milestones
+            rightY = startY
+            if self.project.milestones:
+                # Temporarily shift x for right column
+                origX = x
+                rightY = startY
+
+                # Draw heading manually since drawText uses closure x
+                headFont = QFont("Segoe UI", 14); headFont.setBold(True)
+                painter.setFont(headFont); painter.setPen(QColor("#111111"))
+                painter.drawText(QRectF(rightX, rightY, colW, 30), Qt.TextFlag.TextWordWrap, "Milestones")
+                rightY += 8 + 16
+
+                BOX = 13
+                LINE_H = 20
+                for milestone in self.project.milestones:
+                    done = milestone.isReached()
+                    drawCheckmark(rightX, rightY + 3, BOX, checked=done, color=QColor("#2B5CE6"))
+                    font = QFont("Segoe UI", 12); font.setBold(True); font.setStrikeOut(done)
+                    painter.setFont(font)
+                    painter.setPen(QColor("#2B5CE6") if done else QColor("#333333"))
+                    pct = f"  {milestone.getProgress():.0f}%"
+                    painter.drawText(
+                        QRectF(rightX + BOX + 6, rightY, colW - BOX - 6, LINE_H),
+                        Qt.TextFlag.TextWordWrap, milestone.name + pct
+                    )
+                    rightY += LINE_H + 2
+                    # sub-tasks
+                    for task in milestone.tasks:
+                        tdone = task.dateCompleted is not None
+                        drawCheckmark(rightX + 14, rightY + 3, 10, checked=tdone, color=QColor("#2B5CE6"))
+                        sfont = QFont("Segoe UI", 12); sfont.setStrikeOut(tdone)
+                        painter.setFont(sfont)
+                        painter.setPen(QColor("#2B5CE6") if tdone else QColor("#888888"))
+                        painter.drawText(
+                            QRectF(rightX + 28, rightY, colW - 28, LINE_H),
+                            Qt.TextFlag.TextWordWrap, task.name
+                        )
+                        rightY += LINE_H
+                    rightY += 6
+
+            y = max(leftY, rightY) + 16
+            y = drawDivider(y)
+
+        # ── Images grid (2 cols) ──────────────────────────────────────────────────
         if self.project.media:
-            y = drawText("Images", 11, True, y, QColor("#111111"), spacing=14)
+            y = drawText("Images", 14, True, y, QColor("#111111"), spacing=12)
 
-            for media in self.project.media:
-                pixmap = media.getPixmap().scaled(
-                    imgW, imgH,
+            cols = 2
+            gap = 20
+            imgW = (contentW - gap * (cols - 1)) // cols
+            maxImgH = int(imgW * 0.55)  # max cell height; actual image may be shorter
+            captionH = 30
+
+            for i, media in enumerate(self.project.media):
+                pixmap = media.getPixmap()
+                if pixmap is None or pixmap.isNull():
+                    continue
+
+                col = i % cols
+                row = i // cols
+                cellX = x + col * (imgW + gap)
+                cellY = y + row * (maxImgH + captionH + gap)
+
+                if cellY + maxImgH + captionH > CANVAS_H - margin:
+                    break
+
+                # Scale to fit fully inside the cell — no cropping
+                pixmap = pixmap.scaled(
+                    imgW, maxImgH,
                     Qt.AspectRatioMode.KeepAspectRatio,
                     Qt.TransformationMode.SmoothTransformation
                 )
-                painter.drawPixmap(int(x), int(y), pixmap)
+
+                actualH = pixmap.height()
+                actualW = pixmap.width()
+
+                # Draw rounded rect background behind the image
+                painter.setPen(Qt.PenStyle.NoPen)
+                painter.setBrush(QColor("#F4F4F4"))
+                painter.drawRoundedRect(QRectF(cellX, cellY, imgW, maxImgH), 8, 8)
+
+                # Center the image inside the cell both horizontally and vertically
+                imgX = int(cellX + (imgW - actualW) / 2)
+                imgY = int(cellY + (maxImgH - actualH) / 2)
+
+                painter.save()
+                path2 = QPainterPath()
+                path2.addRoundedRect(QRectF(cellX, cellY, imgW, maxImgH), 8, 8)
+                painter.setClipPath(path2)
+                painter.drawPixmap(imgX, imgY, pixmap)
+                painter.restore()
+                painter.setClipRect(0, 0, CANVAS_W, CANVAS_H)
 
                 if media.description:
-                    captionFont = QFont("Segoe UI", 13)
-                    painter.setFont(captionFont)
-                    painter.setPen(QColor("#333333"))
-                    capX = x + pixmap.width() + 20
-                    capW = contentW - pixmap.width() - 20
-                    capRect = QRectF(capX, y, capW, 9999)
-                    capBR = painter.boundingRect(capRect, Qt.TextFlag.TextWordWrap, media.description)
-                    capY = y + max(0.0, (pixmap.height() - capBR.height()) / 2)
-                    painter.drawText(QRectF(capX, capY, capW, 9999), Qt.TextFlag.TextWordWrap, media.description)
-
-                y += pixmap.height() + 20
+                    capFont = QFont("Segoe UI", 11)
+                    painter.setFont(capFont)
+                    painter.setPen(QColor("#555555"))
+                    painter.drawText(
+                        QRectF(cellX, cellY + maxImgH + 6, imgW, captionH),
+                        Qt.AlignmentFlag.AlignCenter | Qt.TextFlag.TextWordWrap,
+                        media.description
+                    )
 
         painter.end()
 
-        # Save
+        # ── Save ──────────────────────────────────────────────────────────────────
         if asPdf:
             printer = QPrinter(QPrinter.PrinterMode.HighResolution)
             printer.setOutputFormat(QPrinter.OutputFormat.PdfFormat)
             printer.setOutputFileName(filePath)
-
             pageSizeMM = QSizeF(CANVAS_W * 25.4 / 96, CANVAS_H * 25.4 / 96)
             printer.setPageSize(QPageSize(pageSizeMM, QPageSize.Unit.Millimeter))
             printer.setPageMargins(QMarginsF(0, 0, 0, 0))
-
             pdfPainter = QPainter(printer)
             prRect = printer.pageRect(QPrinter.Unit.DevicePixel)
             scaled = img.scaled(
@@ -1266,3 +1402,13 @@ class projectViewPage(QWidget):
     def save(self):
         if self.storage and self.project:
             self.storage.saveProject(self.project)
+    
+    def syncProjectStatus(self):
+        if not self.project:
+            return
+        self.project.getProgress()  
+        self.save()
+
+        mainWindow = self.window()
+        if hasattr(mainWindow, "projectPage"):
+            mainWindow.projectPage.refreshProjects()

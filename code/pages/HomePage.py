@@ -7,7 +7,7 @@ from qfluentwidgets import (
     TitleLabel, BodyLabel, isDarkTheme, StrongBodyLabel
 )
 from PyQt6.QtWidgets import QApplication
-import random
+import random, sys, os
 
 FEATURE_CARDS = {
     "Organize your tasks": [
@@ -244,6 +244,11 @@ class homePage(QWidget):
             mainWindow.projectViewPage.setProject(project)
             mainWindow.switchTo(mainWindow.projectViewPage)
 
+    def resource_path(self, relative_path):
+        if hasattr(sys, '_MEIPASS'):
+            return os.path.join(sys._MEIPASS, relative_path)
+        return os.path.join(os.path.abspath("."), relative_path)
+
     def createFeatureCard(self, imagePath, caption):
         wrapper = QWidget()
         wrapperLayout = QVBoxLayout(wrapper)
@@ -257,7 +262,7 @@ class homePage(QWidget):
 
         img_label = QLabel()
         img_label.setPixmap(
-            QPixmap(imagePath).scaled(
+            QPixmap(self.resource_path(imagePath)).scaled(  # <-- fix is here
                 250, 180,
                 Qt.AspectRatioMode.KeepAspectRatioByExpanding,
                 Qt.TransformationMode.SmoothTransformation

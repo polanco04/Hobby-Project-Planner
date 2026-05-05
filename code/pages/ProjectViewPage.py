@@ -363,6 +363,10 @@ class projectViewPage(QWidget):
                 if task in milestone.tasks:
                     milestone.removeTask(task)
             self.project.removeTask(task.taskId)
+            
+            if self.storage:
+                self.storage.deleteTask(task.taskId)
+            
             self.save()
             self.refreshTaskList()
             self.refreshMilestoneList()
@@ -619,6 +623,10 @@ class projectViewPage(QWidget):
             for task in list(milestone.tasks):
                 milestone.removeTask(task)
             self.project.removeMilestone(milestone.milestoneId)
+            
+            if self.storage:
+                self.storage.deleteMilestone(milestone.milestoneId)
+            
             self.save()
             self.refreshMilestoneList()
             self.refreshTaskList()

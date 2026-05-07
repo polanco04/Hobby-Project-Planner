@@ -928,6 +928,14 @@ class projectViewPage(QWidget):
         self.imageGrid.addWidget(cellWidget, gridRow, gridCol, Qt.AlignmentFlag.AlignTop)
 
     def deleteImage(self, media: Media):
+        dialog = MessageBox(
+            "Delete Image",
+            f"Are you sure you want to delete '{media.description or 'this image'}'? This cannot be undone.",
+            self.window()
+        )
+        if not dialog.exec():
+            return
+        
         try:
             mediaId = media.mediaId
             self.project.removeMedia(mediaId)

@@ -233,7 +233,7 @@ class homePage(QWidget):
         mainWindow = self.window()
         if hasattr(mainWindow, "projectViewPage"):
             mainWindow.projectViewPage.setProject(project)
-            mainWindow.switchTo(mainWindow.projectViewPage)
+            mainWindow.switchTo(mainWindow._viewScroll)
 
     def resource_path(self, relative_path):
         if hasattr(sys, '_MEIPASS'):

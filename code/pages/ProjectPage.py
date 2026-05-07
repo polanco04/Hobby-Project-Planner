@@ -244,7 +244,7 @@ class projectPage(QWidget):
         mainWindow = self.window()
         if hasattr(mainWindow, "projectViewPage"):
             mainWindow.projectViewPage.setProject(project)
-            mainWindow.switchTo(mainWindow.projectViewPage)
+            mainWindow.switchTo(mainWindow._viewScroll)
 
     def editProject(self, project):
         dialog = EditProjectDialog(project, self.window())

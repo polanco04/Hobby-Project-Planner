@@ -4,7 +4,7 @@ from PyQt6.QtGui import QFont
 from qfluentwidgets import (
     BodyLabel, CardWidget, SubtitleLabel, TitleLabel, PrimaryPushButton,
     HorizontalSeparator, IconWidget, InfoBar, InfoBarPosition, PushButton,
-    MessageBox
+    MessageBox, ScrollArea
 )
 from qfluentwidgets import FluentIcon as FIF
 from components.widgets import createFeatureCard
@@ -68,9 +68,20 @@ class projectPage(QWidget):
         headerRow.addWidget(btn)
         mainLayout.addLayout(headerRow)
 
-        self.projectsContainer = QVBoxLayout()
+        self.scrollContent = QWidget()
+        self.scrollContent.setStyleSheet("background: transparent;")
+        self.projectsContainer = QVBoxLayout(self.scrollContent)
         self.projectsContainer.setSpacing(10)
-        mainLayout.addLayout(self.projectsContainer)
+        self.projectsContainer.setContentsMargins(0, 0, 0, 0)
+
+        scrollArea = ScrollArea()
+        scrollArea.setWidget(self.scrollContent)
+        scrollArea.setWidgetResizable(True)
+        scrollArea.setMinimumHeight(300)
+        scrollArea.setMaximumHeight(500)
+        scrollArea.setStyleSheet("ScrollArea { border: none; background: transparent; }")
+        scrollArea.viewport().setStyleSheet("background: transparent;")
+        mainLayout.addWidget(scrollArea)
 
         mainLayout.addStretch()
         mainLayout.addWidget(HorizontalSeparator())
@@ -120,6 +131,8 @@ class projectPage(QWidget):
         else:
             for project in self.hobbyist.projects:
                 self.projectsContainer.addWidget(self.createProjectCard(project))
+        
+        self.projectsContainer.addStretch() 
 
     def refreshFeatureCards(self):
         while self.featureRow.count():
@@ -177,7 +190,6 @@ class projectPage(QWidget):
             dateLabel.setStyleSheet("color: gray;")
             textLayout.addWidget(dateLabel)
 
-        # Status badge
         statusVal = project.status.value
         fg, bg = STATUS_COLORS.get(statusVal, ("#555555", "#EEEEEE"))
         statusLabel = QLabel(statusVal.replace("_", " ").title())
@@ -188,8 +200,11 @@ class projectPage(QWidget):
         statusLabel.setFixedHeight(22)
         textLayout.addWidget(statusLabel)
 
-        btnRow = QVBoxLayout()
+        btnWidget = QWidget()
+        btnWidget.setFixedWidth(100)
+        btnRow = QVBoxLayout(btnWidget)
         btnRow.setSpacing(6)
+        btnRow.setContentsMargins(0, 0, 0, 0)
 
         openBtn = PushButton("Open")
         openBtn.setFixedWidth(80)
@@ -221,9 +236,8 @@ class projectPage(QWidget):
         btnRow.addWidget(holdBtn)
         btnRow.addWidget(deleteBtn)
 
-        layout.addLayout(textLayout)
-        layout.addStretch()
-        layout.addLayout(btnRow)
+        layout.addLayout(textLayout, stretch=1) 
+        layout.addWidget(btnWidget)
         return card
 
     def openProject(self, project):

@@ -63,16 +63,8 @@ class homePage(QWidget):
         self._welcomeBackSubtitle = random.choice(WELCOME_BACK_SUBTITLES)
         self._inSessionSubtitle = random.choice(IN_SESSION_SUBTITLES)
 
-        outer = QVBoxLayout(self)
-        outer.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
-        outer.setContentsMargins(40, 0, 40, 0)
-
-        container = QWidget()
-        container.setMaximumWidth(1000)
-        container.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-
-        self.mainLayout = QVBoxLayout(container)
-        self.mainLayout.setContentsMargins(40, 40, 40, 40)
+        self.mainLayout = QVBoxLayout(self)
+        self.mainLayout.setContentsMargins(30, 20, 30, 20)
         self.mainLayout.setSpacing(30)
 
         self.topWidget = QWidget()
@@ -85,7 +77,6 @@ class homePage(QWidget):
         self.featureRow.setSpacing(20)
         self.mainLayout.addLayout(self.featureRow)
 
-        outer.addWidget(container)
         self.refreshHome()
 
     def showEvent(self, event):

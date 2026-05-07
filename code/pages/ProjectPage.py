@@ -12,6 +12,7 @@ from components.projectMessageBox import NewProjectDialog
 from components.editProjectDialog import EditProjectDialog
 from classes.Hobbyist import Hobbyist
 from classes.Project import ProjectStatus
+from PyQt6.QtWidgets import QScrollArea as QSA
 import random
 
 FEATURE_CARDS = {
@@ -46,16 +47,8 @@ class projectPage(QWidget):
         self.storage = storage
         self.setObjectName("projectPage")
 
-        outer = QVBoxLayout(self)
-        outer.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
-        outer.setContentsMargins(40, 0, 40, 0)
-
-        container = QWidget()
-        container.setMaximumWidth(1000)
-        container.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-
-        mainLayout = QVBoxLayout(container)
-        mainLayout.setContentsMargins(40, 40, 40, 40)
+        mainLayout = QVBoxLayout(self)
+        mainLayout.setContentsMargins(30, 20, 30, 20)
         mainLayout.setSpacing(30)
 
         headerRow = QHBoxLayout()
@@ -74,12 +67,13 @@ class projectPage(QWidget):
         self.projectsContainer.setSpacing(10)
         self.projectsContainer.setContentsMargins(0, 0, 0, 0)
 
-        scrollArea = ScrollArea()
+        scrollArea = QSA()
         scrollArea.setWidget(self.scrollContent)
         scrollArea.setWidgetResizable(True)
-        scrollArea.setMinimumHeight(300)
+        scrollArea.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scrollArea.setMinimumHeight(200)
         scrollArea.setMaximumHeight(500)
-        scrollArea.setStyleSheet("ScrollArea { border: none; background: transparent; }")
+        scrollArea.setStyleSheet("QScrollArea { border: none; background: transparent; }")
         scrollArea.viewport().setStyleSheet("background: transparent;")
         mainLayout.addWidget(scrollArea)
 
@@ -90,7 +84,6 @@ class projectPage(QWidget):
         self.featureRow.setSpacing(20)
         mainLayout.addLayout(self.featureRow)
 
-        outer.addWidget(container)
         self.refreshProjects()
 
     def showEvent(self, event):

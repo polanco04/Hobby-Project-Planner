@@ -163,7 +163,7 @@ class homePage(QWidget):
         btn = PrimaryPushButton("Go to Projects →")
         btn.setFixedWidth(180)
         btn.setFixedHeight(36)
-        btn.clicked.connect(lambda: self.mainWindow.switchTo(self.mainWindow.projectPage))
+        btn.clicked.connect(lambda: self.mainWindow.switchTo(self.mainWindow.projectScroll))
 
         layout.addWidget(title)
         layout.addWidget(body)
@@ -187,7 +187,7 @@ class homePage(QWidget):
         textLayout = QVBoxLayout()
         textLayout.setSpacing(4)
 
-        title = SubtitleLabel(project.title.upper())
+        title = SubtitleLabel(project.title)
         desc = BodyLabel(project.description)
         desc.setStyleSheet("color: #888888;")
         desc.setWordWrap(True)
@@ -214,7 +214,7 @@ class homePage(QWidget):
         layout.setContentsMargins(20, 18, 20, 18)
         layout.setSpacing(6)
 
-        title = StrongBodyLabel(project.title.upper())
+        title = StrongBodyLabel(project.title)
         desc = CaptionLabel(project.description)
         desc.setStyleSheet("color: #888888;")
         desc.setWordWrap(True)
@@ -233,7 +233,7 @@ class homePage(QWidget):
         mainWindow = self.window()
         if hasattr(mainWindow, "projectViewPage"):
             mainWindow.projectViewPage.setProject(project)
-            mainWindow.switchTo(mainWindow._viewScroll)
+            mainWindow.switchTo(mainWindow.viewScroll)
 
     def resource_path(self, relative_path):
         if hasattr(sys, '_MEIPASS'):

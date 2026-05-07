@@ -221,15 +221,6 @@ class homePage(QWidget):
 
         openBtn = PushButton("Open")
         openBtn.setFixedHeight(32)
-        openBtn.setStyleSheet("""
-            QPushButton {
-                border: 1.5px solid #CCCCCC;
-                border-radius: 8px;
-                font-weight: 500;
-                background: transparent;
-            }
-            QPushButton:hover { background: rgba(0,0,0,0.05); }
-        """)
         openBtn.clicked.connect(lambda checked=False, p=project: self.openProject(p))
 
         layout.addWidget(title)

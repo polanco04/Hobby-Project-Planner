@@ -1421,7 +1421,7 @@ class projectViewPage(QWidget):
     def goBackToProjects(self):
         mainWindow = self.window()
         if hasattr(mainWindow, "switchTo") and hasattr(mainWindow, "projectPage"):
-            mainWindow.switchTo(mainWindow._projectScroll)
+            mainWindow.switchTo(mainWindow.projectScroll)
 
     def setProject(self, project):
         self.project = project

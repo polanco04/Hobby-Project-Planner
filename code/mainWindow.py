@@ -33,14 +33,14 @@ class MainWindow(FluentWindow):
         self.projectViewPage = projectViewPage(self.storage)
 
         self._homeScroll    = self.wrapScroll(self.homePage)
-        self._projectScroll = self.wrapScroll(self.projectPage)
+        self.projectScroll = self.wrapScroll(self.projectPage)
         self._profileScroll = self.wrapScroll(self.profilePage)
-        self._viewScroll    = self.wrapScroll(self.projectViewPage)
+        self.viewScroll    = self.wrapScroll(self.projectViewPage)
 
         self.addSubInterface(self._homeScroll,    FIF.HOME,   "Home")
-        self.addSubInterface(self._projectScroll, FIF.FOLDER, "Projects")
+        self.addSubInterface(self.projectScroll, FIF.FOLDER, "Projects")
         self.addSubInterface(self._profileScroll, FIF.PEOPLE, "Profile")
-        self.stackedWidget.addWidget(self._viewScroll)
+        self.stackedWidget.addWidget(self.viewScroll)
         self.navigationInterface.setReturnButtonVisible(False)
 
         self.themeButton = NavigationToolButton(FIF.CONSTRACT, self)

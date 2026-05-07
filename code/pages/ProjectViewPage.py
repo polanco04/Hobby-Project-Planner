@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (
     QFrame, QHBoxLayout, QLabel, QListWidget, QListWidgetItem,
     QPushButton, QSizePolicy, QStackedWidget, QWidget, QVBoxLayout,
     QCheckBox, QFileDialog, QGridLayout, QDateEdit,
-    QDialog, QDialogButtonBox, QLineEdit, QLayout
+    QDialog, QDialogButtonBox, QLineEdit, QScrollArea
 )
 from PyQt6.QtPrintSupport import QPrinter
 from PyQt6.QtCore import QEvent, Qt, QDate, QRectF, QSizeF, QMarginsF, QPointF 
@@ -17,7 +17,7 @@ from PyQt6.QtPrintSupport import QPrinter
 from qfluentwidgets import (
     SubtitleLabel, BodyLabel, StrongBodyLabel, CardWidget,
     PrimaryPushButton, LineEdit, InfoBar, InfoBarPosition, isDarkTheme,
-    CheckBox, ScrollArea, qconfig 
+    CheckBox, ScrollArea, qconfig, MessageBox 
 )
 from classes.Task import Task
 from classes.Milestone import Milestone
@@ -358,6 +358,15 @@ class projectViewPage(QWidget):
             self.refreshTaskList()
 
     def deleteTask(self, task: Task):
+        dialog = MessageBox(
+                "Delete Task",
+                f"Are you sure you want to delete '{task.name}'? This cannot be undone.",
+                self.window()
+            )
+        
+        if not dialog.exec():
+            return
+        
         try:
             for milestone in self.project.milestones:
                 if task in milestone.tasks:
@@ -619,6 +628,14 @@ class projectViewPage(QWidget):
         self.refreshMilestoneList()
 
     def deleteMilestone(self, milestone: Milestone):
+        dialog = MessageBox(
+                "Delete Milestone",
+                f"Are you sure you want to delete '{milestone.name}'? This cannot be undone.",
+                self.window()
+            )
+        if not dialog.exec():
+            return
+        
         try:
             for task in list(milestone.tasks):
                 milestone.removeTask(task)
@@ -959,7 +976,17 @@ class projectViewPage(QWidget):
 
     def createExportTab(self):
         page = CardWidget()
-        pageLayout = QVBoxLayout(page)
+        outerLayout = QVBoxLayout(page)
+        outerLayout.setContentsMargins(0, 0, 0, 0)
+
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setStyleSheet("QScrollArea { border: none; background: transparent; }")
+        scroll.viewport().setStyleSheet("background: transparent;")
+
+        inner = QWidget()
+        inner.setStyleSheet("background: transparent;")
+        pageLayout = QVBoxLayout(inner)
         pageLayout.setContentsMargins(24, 24, 24, 24)
         pageLayout.setSpacing(20)
 
@@ -1001,6 +1028,9 @@ class projectViewPage(QWidget):
         pageLayout.addWidget(self.exportPdfButton)
         pageLayout.addWidget(self.exportImageButton)
         pageLayout.addStretch()
+
+        scroll.setWidget(inner)
+        outerLayout.addWidget(scroll)
 
         return page
 
@@ -1383,7 +1413,7 @@ class projectViewPage(QWidget):
     def goBackToProjects(self):
         mainWindow = self.window()
         if hasattr(mainWindow, "switchTo") and hasattr(mainWindow, "projectPage"):
-            mainWindow.switchTo(mainWindow.projectPage)
+            mainWindow.switchTo(mainWindow._projectScroll)
 
     def setProject(self, project):
         self.project = project

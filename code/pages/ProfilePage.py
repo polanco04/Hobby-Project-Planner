@@ -14,6 +14,20 @@ _AVATAR_FILE = _DATA_DIR / "avatar.png"
 
 
 class AvatarLabel(QLabel):
+    """
+    Name: __init__
+
+    INPUT:
+        size:           Diameter of the circular avatar in pixels (int)
+        parent:         Optional parent widget (QWidget)
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Initializes the AvatarLabel with a fixed square size, no pixmap,
+        and arrow cursor. Edit mode is disabled by default.
+    """
     def __init__(self, size=96, parent=None):
         super().__init__(parent)
         self._size = size
@@ -22,16 +36,55 @@ class AvatarLabel(QLabel):
         self.setFixedSize(size, size)
         self.setCursor(Qt.CursorShape.ArrowCursor)
 
+    """
+    Name: setPixmap
+
+    INPUT:
+        pixmap:         QPixmap to display in the avatar (QPixmap)
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Stores the given pixmap and triggers a repaint to display it.
+    """
     def setPixmap(self, pixmap):
         self._pixmap = pixmap
         self.update()
 
+    """
+    Name: setEditMode
+
+    INPUT:
+        enabled:        Whether edit mode should be active (bool)
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Enables or disables edit mode on the avatar. When enabled, the cursor
+        changes to a pointing hand to indicate the avatar is clickable.
+    """
     def setEditMode(self, enabled):
         self.edit_mode = enabled
         self.setCursor(
             Qt.CursorShape.PointingHandCursor if enabled else Qt.CursorShape.ArrowCursor
         )
 
+    """
+    Name: mousePressEvent
+
+    INPUT:
+        event:          The mouse press event (QMouseEvent)
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        When edit mode is active, opens a file dialog to select a new profile
+        picture. Copies the chosen image to the avatar file path, updates the
+        displayed pixmap, and notifies the parent page to update the remove button.
+    """
     def mousePressEvent(self, event):
         if self.edit_mode:
             path, _ = QFileDialog.getOpenFileName(
@@ -47,6 +100,20 @@ class AvatarLabel(QLabel):
                 if hasattr(page, "updateRemoveBtn"):
                     page.updateRemoveBtn()
 
+    """
+    Name: paintEvent
+
+    INPUT:
+        event:          The paint event (QPaintEvent)
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Renders the avatar as a circular clipped image. If a pixmap is set,
+        it is scaled and centered within the circle. Otherwise, a grey
+        placeholder with a people icon is drawn.
+    """
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
@@ -75,6 +142,21 @@ class AvatarLabel(QLabel):
 
 
 class profilePage(QWidget):
+    """
+    Name: __init__
+
+    INPUT:
+        hobbyist:       The current Hobbyist instance (Hobbyist)
+        storage:        The LocalStorage instance for persistence (LocalStorage)
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Initializes the profile page with a card containing the avatar, username,
+        and bio in both view and edit modes. Sets up the Edit/Save button and
+        loads the existing avatar from disk if available.
+    """
     def __init__(self, hobbyist=None, storage=None):
         super().__init__()
         self.setObjectName("profilePage")
@@ -156,6 +238,20 @@ class profilePage(QWidget):
         outer.addWidget(card)
         outer.addStretch()
 
+    """
+    Name: loadAvatar
+
+    INPUT:
+        N/A
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Loads the avatar image into the AvatarLabel. First tries the hobbyist's
+        stored profile picture path, then falls back to the default avatar file
+        on disk if it exists.
+    """
     def loadAvatar(self):
         if self.hobbyist and self.hobbyist.profilePicture:
             pixmap = QPixmap(self.hobbyist.profilePicture)
@@ -165,6 +261,20 @@ class profilePage(QWidget):
         if _AVATAR_FILE.exists():
             self.avatar.setPixmap(QPixmap(str(_AVATAR_FILE)))
 
+    """
+    Name: toggleEdit
+
+    INPUT:
+        N/A
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Toggles between view and edit modes. When entering edit mode, pre-fills
+        the input fields and enables avatar editing. When saving, updates the
+        hobbyist object, persists changes via storage, and returns to view mode.
+    """
     def toggleEdit(self):
         if not self._editing:
             self._editing = True
@@ -197,9 +307,37 @@ class profilePage(QWidget):
             self._viewWidget.show()
             self._editBtn.setText("Edit Profile")
 
+    """
+    Name: updateRemoveBtn
+
+    INPUT:
+        N/A
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Shows or hides the Remove Photo button depending on whether the avatar
+        file currently exists on disk.
+    """
     def updateRemoveBtn(self):
         self.removePhotoBtn.setVisible(_AVATAR_FILE.exists())
 
+    """
+    Name: removePhoto
+
+    INPUT:
+        N/A
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Clears the avatar pixmap, deletes the avatar file from disk (renaming it
+        as a backup if deletion fails due to a permission error), clears the
+        hobbyist's profile picture, saves the change to storage, and hides the
+        Remove Photo button.
+    """
     def removePhoto(self):
         self.avatar._pixmap = None
         self.avatar.update()

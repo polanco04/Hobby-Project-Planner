@@ -51,6 +51,22 @@ IN_SESSION_SUBTITLES = [
 ]
 
 class homePage(QWidget):
+    """
+    Name: __init__
+
+    INPUT:
+        mainWindow:     Reference to the main application window (MainWindow)
+        hobbyist:       The current Hobbyist instance (Hobbyist)
+        isFirstTime:    Whether this is the user's first time launching the app (bool)
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Initializes the home page with greeting labels, a dynamic top section,
+        a horizontal separator, and a feature card row. Picks random subtitle
+        strings for first-time, welcome-back, and in-session states.
+    """
     def __init__(self, mainWindow=None, hobbyist=None, isFirstTime=False):
         super().__init__()
         self.setObjectName("homePage")
@@ -79,16 +95,56 @@ class homePage(QWidget):
 
         self.refreshHome()
 
+    """
+    Name: showEvent
+
+    INPUT:
+        event:          The show event triggered when the widget becomes visible (QShowEvent)
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Called whenever the home page is shown. Refreshes the greeting section
+        and the feature cards to reflect the latest state.
+    """
     def showEvent(self, event):
         super().showEvent(event)
         self.refreshHome()
         self.refreshFeatureCards()
 
+    """
+    Name: changeEvent
+
+    INPUT:
+        event:          The change event (QEvent)
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Listens for palette or style change events (e.g. theme switches) and
+        triggers a home refresh to update colors and styling accordingly.
+    """
     def changeEvent(self, event):
         super().changeEvent(event)
         if event.type() in (QEvent.Type.PaletteChange, QEvent.Type.StyleChange):
             self.refreshHome()
 
+    """
+    Name: _getGreeting
+
+    INPUT:
+        N/A
+
+    RETURN:
+        tuple:          A (title, subtitle) string pair for the current greeting state
+
+    DESCRIPTION:
+        Determines the appropriate greeting title and subtitle based on whether
+        the user has projects, whether it's their first time, and whether the
+        page has already been shown this session.
+    """
     def _getGreeting(self):
         username = self.hobbyist.username if self.hobbyist and self.hobbyist.username else ""
         nameStr = f", {username}" if username and username != "User" else ""
@@ -103,6 +159,20 @@ class homePage(QWidget):
         else:
             return "Hobby Project Planner", self._inSessionSubtitle
 
+    """
+    Name: refreshHome
+
+    INPUT:
+        N/A
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Rebuilds the top section of the home page by deleting the existing top
+        widget and recreating it with the current greeting, subtitle, and either
+        a get-started card or a continue card with other project cards.
+    """
     def refreshHome(self):
         self.topWidget.deleteLater()
         self.topWidget = QWidget()
@@ -139,6 +209,19 @@ class homePage(QWidget):
 
         self._shownThisSession = True
 
+    """
+    Name: createStCard
+
+    INPUT:
+        N/A
+
+    RETURN:
+        CardWidget:     A card prompting the user to create their first project
+
+    DESCRIPTION:
+        Builds and returns a styled card widget with a title, description body,
+        and a button that navigates to the Projects page.
+    """
     def createStCard(self):
         card = CardWidget()
         card.setStyleSheet("CardWidget { border-radius: 14px; }")
@@ -162,6 +245,20 @@ class homePage(QWidget):
         layout.addWidget(btn)
         return card
 
+    """
+    Name: createContinueCard
+
+    INPUT:
+        N/A
+
+    RETURN:
+        CardWidget:     A card showing the most recent project with a Continue button
+
+    DESCRIPTION:
+        Builds and returns a card displaying the last project in the hobbyist's
+        list, with its title, description, and a button to open it in the project
+        view page.
+    """
     def createContinueCard(self):
         project = self.hobbyist.projects[-1]
         card = CardWidget()
@@ -197,6 +294,19 @@ class homePage(QWidget):
         layout.addLayout(bottomRow)
         return card
 
+    """
+    Name: createOtherProjectCard
+
+    INPUT:
+        project:        A Project instance to display (Project)
+
+    RETURN:
+        CardWidget:     A compact card for a non-featured project with an Open button
+
+    DESCRIPTION:
+        Builds and returns a fixed-width card showing the given project's title,
+        description, and an Open button that navigates to the project view page.
+    """
     def createOtherProjectCard(self, project):
         card = CardWidget()
         card.setStyleSheet("CardWidget { border-radius: 14px; }")
@@ -220,17 +330,58 @@ class homePage(QWidget):
         layout.addWidget(openBtn)
         return card
 
+    """
+    Name: openProject
+
+    INPUT:
+        project:        The Project instance to open (Project)
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Sets the given project on the project view page and navigates the main
+        window to the view scroll area.
+    """
     def openProject(self, project):
         mainWindow = self.window()
         if hasattr(mainWindow, "projectViewPage"):
             mainWindow.projectViewPage.setProject(project)
             mainWindow.switchTo(mainWindow.viewScroll)
 
+    """
+    Name: resource_path
+
+    INPUT:
+        relative_path:      Relative path to a resource file (str)
+
+    RETURN:
+        str:                Absolute path to the resource, accounting for PyInstaller bundling
+
+    DESCRIPTION:
+        Resolves the correct absolute path to a resource. Uses sys._MEIPASS when
+        running as a PyInstaller executable, otherwise resolves from the current
+        working directory.
+    """
     def resource_path(self, relative_path):
         if hasattr(sys, '_MEIPASS'):
             return os.path.join(sys._MEIPASS, relative_path)
         return os.path.join(os.path.abspath("."), relative_path)
 
+    """
+    Name: createFeatureCard
+
+    INPUT:
+        imagePath:      Relative path to the card's image (str)
+        caption:        Caption text to display below the card (str)
+
+    RETURN:
+        QWidget:        A centered widget containing an image card and caption label
+
+    DESCRIPTION:
+        Builds and returns a card widget displaying a smoothly scaled image at
+        250x180 pixels with a caption label beneath it. Uses CardWidget for styling.
+    """
     def createFeatureCard(self, imagePath, caption):
         wrapper = QWidget()
         wrapperLayout = QVBoxLayout(wrapper)
@@ -244,7 +395,7 @@ class homePage(QWidget):
 
         img_label = QLabel()
         img_label.setPixmap(
-            QPixmap(self.resource_path(imagePath)).scaled(  # <-- fix is here
+            QPixmap(self.resource_path(imagePath)).scaled(
                 250, 180,
                 Qt.AspectRatioMode.KeepAspectRatioByExpanding,
                 Qt.TransformationMode.SmoothTransformation
@@ -261,6 +412,19 @@ class homePage(QWidget):
         wrapperLayout.addWidget(captionLabel)
         return wrapper
 
+    """
+    Name: refreshFeatureCards
+
+    INPUT:
+        N/A
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Clears all existing feature cards from the feature row layout and rebuilds
+        them by picking a random image for each caption in FEATURE_CARDS.
+    """
     def refreshFeatureCards(self):
         while self.featureRow.count():
             item = self.featureRow.takeAt(0)

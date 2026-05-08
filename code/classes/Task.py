@@ -1,8 +1,25 @@
 from datetime import datetime
 from typing import Any
-from .Reminder import Reminder
 
 class Task:
+    """
+    Name: __init__
+
+    INPUT:
+        name:           Name of the task (str)
+        description:    Description of the task (str)
+        deadline:       Deadline for the task (datetime)
+        estimatedTime:  Estimated time to complete the task in minutes (int)
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Initializes a Task with a stripped name and description, a creation timestamp,
+        no completion date, the given deadline and estimated time, and empty lists
+        for dependencies, and milestones. Raises ValueError if the name
+        is empty or estimatedTime is negative.
+    """
     def __init__(self, name: str, description: str, deadline: datetime, estimatedTime: int):
         name = name.strip()
         description = description.strip()
@@ -20,44 +37,59 @@ class Task:
         self.dateCompleted: datetime | None = None
         self.deadline = deadline
         self.estimatedTime = estimatedTime
-        self.reminders: list[Reminder] = []
-        self.dependencies: list[Task] = []
         self.milestones: list = [] 
 
+    """
+    Name: markComplete
+
+    INPUT:
+        N/A
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Marks the task as completed by setting dateCompleted to the current time.
+        Also checks each associated milestone and clears manuallyCompleted if all
+        milestone tasks are now done.
+    """
     def markComplete(self) -> None:
-        if self.isBlocked():
-            raise ValueError("Cannot complete a task while it is blocked by dependencies.")
         self.dateCompleted = datetime.now()
 
         for milestone in self.milestones:
             if not milestone.manuallyCompleted and milestone.getProgress() == 100.0:
                 milestone.manuallyCompleted = False
 
+    """
+    Name: unmarkComplete
+
+    INPUT:
+        N/A
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Resets the task's dateCompleted to None, effectively un-completing
+        the task without modifying any associated milestones or dependencies.
+    """
     def unmarkComplete(self) -> None:
         self.dateCompleted = None
 
-    def addDependency(self, task) -> None:
-        if task is self:
-            raise ValueError("A task cannot depend on itself.")
+    """
+    Name: updateDetails
 
-        if task in self.dependencies:
-            return
+    INPUT:
+        name:           New name for the task (str)
+        desc:           New description for the task (str)
 
-        if self in task.dependencies:
-            raise ValueError("This dependency would create a circular relationship.")
+    RETURN:
+        N/A
 
-        self.dependencies.append(task)
-
-    def removeDependency(self, task) -> None:
-        if task in self.dependencies:
-            self.dependencies.remove(task)
-
-    def isBlocked(self) -> bool:
-        for dependency in self.dependencies:
-            if dependency.dateCompleted is None:
-                return True
-        return False
-
+    DESCRIPTION:
+        Updates the task's name and description after stripping whitespace.
+        Raises ValueError if the cleaned name is empty.
+    """
     def updateDetails(self, name: str, desc: str) -> None:
         cleanedName = name.strip()
 
@@ -66,20 +98,3 @@ class Task:
 
         self.name = cleanedName
         self.description = desc.strip()
-
-    def addReminder(self, reminder: Any) -> None:
-        self.reminders.append(reminder)
-
-    def toDict(self) -> dict[str, Any]:
-        return {
-            "taskId": self.taskId,
-            "name": self.name,
-            "description": self.description,
-            "dateCreated": self.dateCreated,
-            "dateCompleted": self.dateCompleted,
-            "deadline": self.deadline,
-            "estimatedTime": self.estimatedTime,
-            "reminders": self.reminders,
-            "milestones": [m.milestoneId for m in self.milestones],
-            "dependencies": [dependency.taskId for dependency in self.dependencies],
-        }

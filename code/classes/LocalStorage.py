@@ -9,6 +9,21 @@ from classes.Milestone import Milestone
 from classes.Media import Media
 
 class LocalStorage:
+    """
+    Name: __init__
+
+    INPUT:
+        N/A
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Initializes the LocalStorage instance by resolving the database path,
+        ensuring the app data directory exists, opening a SQLite connection with
+        row factory and foreign key support enabled, and calling createTables()
+        to set up the schema.
+    """
     def __init__(self):
         self.dbPath = os.path.join(getAppDataDir(), "data.db")
         os.makedirs(getAppDataDir(), exist_ok=True)
@@ -17,6 +32,20 @@ class LocalStorage:
         self.conn.execute("PRAGMA foreign_keys = ON")
         self.createTables()
 
+    """
+    Name: createTables
+
+    INPUT:
+        N/A
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Executes a SQL script that creates all required tables (hobbyist, projects,
+        tasks, milestones, milestone_tasks, media) if they do not already exist.
+        Commits the transaction after execution.
+    """
     def createTables(self):
         self.conn.executescript("""
             CREATE TABLE IF NOT EXISTS hobbyist (
@@ -84,6 +113,19 @@ class LocalStorage:
 
     # ── Hobbyist ──────────────────────────────────────────────────────────────
 
+    """
+    Name: saveHobbyist
+
+    INPUT:
+        hobbyist:       Hobbyist instance to persist (Hobbyist)
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Inserts the hobbyist record into the database or updates it if a record
+        with id=1 already exists. Commits the transaction after the upsert.
+    """
     def saveHobbyist(self, hobbyist):
         self.conn.execute("""
             INSERT INTO hobbyist (id, username, bio, profilePicture, projectId)
@@ -101,6 +143,20 @@ class LocalStorage:
         ))
         self.conn.commit()
 
+    """
+    Name: loadHobbyist
+
+    INPUT:
+        N/A
+
+    RETURN:
+        hobbyist:       Reconstructed Hobbyist instance, or None if no record exists
+
+    DESCRIPTION:
+        Fetches the single hobbyist row from the database, reconstructs a Hobbyist
+        object with its bio, profile picture, projectId, and full project list
+        loaded via loadProjects(). Returns None if no hobbyist has been saved.
+    """
     def loadHobbyist(self):
         row = self.conn.execute("SELECT * FROM hobbyist WHERE id = 1").fetchone()
         if not row:
@@ -114,6 +170,20 @@ class LocalStorage:
 
     # ── Projects ──────────────────────────────────────────────────────────────
 
+    """
+    Name: saveProject
+
+    INPUT:
+        project:        Project instance to persist (Project)
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Inserts or updates the project record in the database, then iterates
+        over and saves all associated tasks, milestones, and media items.
+        Commits the full transaction after all inserts/updates.
+    """
     def saveProject(self, project):
         self.conn.execute("""
             INSERT INTO projects
@@ -156,6 +226,20 @@ class LocalStorage:
 
         self.conn.commit()
 
+    """
+    Name: loadProjects
+
+    INPUT:
+        N/A
+
+    RETURN:
+        projects:       List of all reconstructed Project instances
+
+    DESCRIPTION:
+        Fetches all project rows from the database and reconstructs each into
+        a Project object, restoring its status, progress, dates, counters,
+        and related tasks, milestones, and media via their respective load methods.
+    """
     def loadProjects(self):
         rows = self.conn.execute("SELECT * FROM projects").fetchall()
         projects = []
@@ -179,12 +263,40 @@ class LocalStorage:
             projects.append(project)
         return projects
 
+    """
+    Name: deleteProject
+
+    INPUT:
+        projectId:      ID of the project to delete (int)
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Deletes the project row with the given projectId from the database.
+        Cascading deletes handle associated tasks, milestones, and media.
+        Commits the transaction after deletion.
+    """
     def deleteProject(self, projectId: int):
         self.conn.execute("DELETE FROM projects WHERE projectId = ?", (projectId,))
         self.conn.commit()
 
     # ── Tasks ─────────────────────────────────────────────────────────────────
 
+    """
+    Name: saveTask
+
+    INPUT:
+        task:           Task instance to persist (Task)
+        projectId:      ID of the project this task belongs to (int)
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Inserts or updates the task record in the database using an upsert.
+        Does not commit — the caller is responsible for committing the transaction.
+    """
     def saveTask(self, task, projectId: int):
         self.conn.execute("""
             INSERT INTO tasks
@@ -208,6 +320,19 @@ class LocalStorage:
             task.estimatedTime
         ))
 
+    """
+    Name: loadTasks
+
+    INPUT:
+        projectId:      ID of the project whose tasks should be loaded (int)
+
+    RETURN:
+        tasks:          List of reconstructed Task instances for the given project
+
+    DESCRIPTION:
+        Fetches all task rows associated with the given projectId and reconstructs
+        each into a Task object, restoring its taskId, dateCreated, and dateCompleted.
+    """
     def loadTasks(self, projectId: int):
         rows = self.conn.execute(
             "SELECT * FROM tasks WHERE projectId = ?", (projectId,)
@@ -226,12 +351,40 @@ class LocalStorage:
             tasks.append(task)
         return tasks
 
+    """
+    Name: deleteTask
+
+    INPUT:
+        taskId:         ID of the task to delete (int)
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Deletes the task row with the given taskId from the database and commits
+        the transaction. Cascading deletes handle milestone_tasks join entries.
+    """
     def deleteTask(self, taskId: int):
         self.conn.execute("DELETE FROM tasks WHERE taskId = ?", (taskId,))
         self.conn.commit()
 
     # ── Milestones ────────────────────────────────────────────────────────────
 
+    """
+    Name: saveMilestone
+
+    INPUT:
+        milestone:      Milestone instance to persist (Milestone)
+        projectId:      ID of the project this milestone belongs to (int)
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Inserts or updates the milestone record in the database. Clears and
+        re-inserts all milestone_tasks join entries for the milestone's associated
+        tasks. Does not commit — the caller is responsible for committing.
+    """
     def saveMilestone(self, milestone, projectId: int):
         self.conn.execute("""
             INSERT INTO milestones
@@ -251,7 +404,6 @@ class LocalStorage:
             1 if milestone.manuallyCompleted else 0
         ))
 
-        # save milestone-task links
         self.conn.execute(
             "DELETE FROM milestone_tasks WHERE milestoneId = ?", (milestone.milestoneId,)
         )
@@ -261,12 +413,27 @@ class LocalStorage:
                 (milestone.milestoneId, task.taskId)
             )
 
+    """
+    Name: loadMilestones
+
+    INPUT:
+        projectId:      ID of the project whose milestones should be loaded (int)
+        tasks:          List of already-loaded Task instances for the project (list)
+
+    RETURN:
+        milestones:     List of reconstructed Milestone instances for the given project
+
+    DESCRIPTION:
+        Fetches all milestone rows for the given projectId and reconstructs each
+        into a Milestone object. Resolves associated tasks from the milestone_tasks
+        join table using the provided task list, and links each task and milestone
+        bidirectionally.
+    """
     def loadMilestones(self, projectId: int, tasks: list):
         rows = self.conn.execute(
             "SELECT * FROM milestones WHERE projectId = ?", (projectId,)
         ).fetchall()
 
-        # build a taskId lookup so we can reuse the same task objects
         taskMap = {t.taskId: t for t in tasks}
 
         milestones = []
@@ -279,7 +446,6 @@ class LocalStorage:
             milestone.createdAt = datetime.fromisoformat(row["createdAt"])
             milestone.manuallyCompleted = bool(row["manuallyCompleted"])
 
-            # link tasks using the junction table
             linkedTaskIds = self.conn.execute(
                 "SELECT taskId FROM milestone_tasks WHERE milestoneId = ?",
                 (milestone.milestoneId,)
@@ -288,7 +454,6 @@ class LocalStorage:
             for taskRow in linkedTaskIds:
                 task = taskMap.get(taskRow["taskId"])
                 if task:
-                    # use the class method to keep both sides in sync
                     if milestone not in task.milestones:
                         task.milestones.append(milestone)
                     if task not in milestone.tasks:
@@ -297,12 +462,39 @@ class LocalStorage:
             milestones.append(milestone)
         return milestones
 
+    """
+    Name: deleteMilestone
+
+    INPUT:
+        milestoneId:    ID of the milestone to delete (int)
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Deletes the milestone row with the given milestoneId from the database
+        and commits the transaction. Cascading deletes handle milestone_tasks entries.
+    """
     def deleteMilestone(self, milestoneId: int):
         self.conn.execute("DELETE FROM milestones WHERE milestoneId = ?", (milestoneId,))
         self.conn.commit()
 
     # ── Media ─────────────────────────────────────────────────────────────────
 
+    """
+    Name: saveMedia
+
+    INPUT:
+        media:          Media instance to persist (Media)
+        projectId:      ID of the project this media belongs to (int)
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Inserts or updates the media record in the database using an upsert.
+        Does not commit — the caller is responsible for committing the transaction.
+    """
     def saveMedia(self, media, projectId: int):
         self.conn.execute("""
             INSERT INTO media
@@ -320,6 +512,19 @@ class LocalStorage:
             media.uploadedAt.isoformat()
         ))
 
+    """
+    Name: loadMedia
+
+    INPUT:
+        projectId:      ID of the project whose media should be loaded (int)
+
+    RETURN:
+        mediaList:      List of reconstructed Media instances for the given project
+
+    DESCRIPTION:
+        Fetches all media rows associated with the given projectId and reconstructs
+        each into a Media object, restoring its mediaId and uploadedAt timestamp.
+    """
     def loadMedia(self, projectId: int):
         rows = self.conn.execute(
             "SELECT * FROM media WHERE projectId = ?", (projectId,)
@@ -332,9 +537,35 @@ class LocalStorage:
             mediaList.append(m)
         return mediaList
 
+    """
+    Name: deleteMedia
+
+    INPUT:
+        mediaId:        ID of the media item to delete (int)
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Deletes the media row with the given mediaId from the database and commits
+        the transaction. The associated file on disk is not removed here.
+    """
     def deleteMedia(self, mediaId: int):
         self.conn.execute("DELETE FROM media WHERE mediaId = ?", (mediaId,))
         self.conn.commit()
 
+    """
+    Name: close
+
+    INPUT:
+        N/A
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Closes the SQLite database connection. Should be called when the
+        application is shutting down or the storage instance is no longer needed.
+    """
     def close(self):
         self.conn.close()

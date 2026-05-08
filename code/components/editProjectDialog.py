@@ -5,6 +5,21 @@ from qfluentwidgets import (
 )
 
 class EditProjectDialog(MessageBoxBase):
+    """
+    Name: __init__
+
+    INPUT:
+        project:        The Project instance whose details are being edited (Project)
+        parent:         Optional parent widget (QWidget)
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Initializes the EditProjectDialog with input fields pre-populated with
+        the given project's current title, description, and deadline. Sets up
+        the dialog layout with labels, inputs, a calendar picker, and Save/Cancel buttons.
+    """
     def __init__(self, project, parent=None):
         super().__init__(parent)
         self.project = project
@@ -38,6 +53,20 @@ class EditProjectDialog(MessageBoxBase):
         self.cancelButton.setText("Cancel")
         self.widget.setMinimumWidth(400)
 
+    """
+    Name: getValues
+
+    INPUT:
+        N/A
+
+    RETURN:
+        dict:           Dictionary with keys 'title', 'description', and 'deadline'
+
+    DESCRIPTION:
+        Reads and returns the current values from the dialog's input fields.
+        If no deadline is selected in the picker, falls back to the project's
+        existing deadline.
+    """
     def getValues(self):
         d = self.deadlinePicker.getDate()
         return {
@@ -46,6 +75,20 @@ class EditProjectDialog(MessageBoxBase):
             "deadline": d.toPyDate() if d else self.project.deadline
         }
 
+    """
+    Name: validate
+
+    INPUT:
+        N/A
+
+    RETURN:
+        bool:           True if all inputs are valid, False otherwise
+
+    DESCRIPTION:
+        Validates the dialog inputs before submission. Returns False and highlights
+        the title field if it is empty. Returns False and shows a warning InfoBar
+        if no deadline is selected or the selected date is in the past.
+    """
     def validate(self) -> bool:
         if not self.titleInput.text().strip():
             self.titleInput.setError(True)

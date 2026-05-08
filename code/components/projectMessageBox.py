@@ -5,6 +5,20 @@ from qfluentwidgets import (
 )
 
 class NewProjectDialog(MessageBoxBase):
+    """
+    Name: __init__
+
+    INPUT:
+        parent:         Optional parent widget (QWidget)
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Initializes the NewProjectDialog with empty input fields for title,
+        description, and deadline. Sets up the dialog layout with labels,
+        inputs, a date picker, and Create/Cancel buttons.
+    """
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -45,6 +59,19 @@ class NewProjectDialog(MessageBoxBase):
 
         self.widget.setMinimumWidth(400)
 
+    """
+    Name: getValues
+
+    INPUT:
+        N/A
+
+    RETURN:
+        dict:           Dictionary with keys 'title', 'description', and 'deadline'
+
+    DESCRIPTION:
+        Reads and returns the current values from the dialog's input fields.
+        Converts the QDate from the date picker into a Python date object.
+    """
     def getValues(self):
         from datetime import date
         d = self.deadlinePicker.getDate()
@@ -55,6 +82,20 @@ class NewProjectDialog(MessageBoxBase):
             "deadline": deadline
         }
 
+    """
+    Name: validate
+
+    INPUT:
+        N/A
+
+    RETURN:
+        bool:           True if all inputs are valid, False otherwise
+
+    DESCRIPTION:
+        Validates the dialog inputs before submission. Returns False if the title
+        field is empty. Returns False and shows an error InfoBar if the selected
+        deadline is in the past.
+    """
     def validate(self) -> bool:
         # Title check
         if not self.titleInput.text().strip():

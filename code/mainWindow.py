@@ -7,6 +7,21 @@ from classes.Hobbyist import Hobbyist
 from classes.LocalStorage import LocalStorage
 
 class MainWindow(FluentWindow):
+    """
+    Name: __init__
+
+    INPUT:
+        isFirstTime:    Whether this is the user's first time launching the app (bool)
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Initializes the main application window. Sets the title, size, and centers
+        it on screen. Loads or creates the hobbyist profile from local storage.
+        Instantiates and registers all pages wrapped in scroll areas, sets up
+        navigation icons, and adds a theme toggle button to the bottom of the nav bar.
+    """
     def __init__(self, isFirstTime=False):
         super().__init__()
 
@@ -51,6 +66,20 @@ class MainWindow(FluentWindow):
         )
         self.themeButton.clicked.connect(self.toggleAppTheme)
 
+    """
+    Name: wrapScroll
+
+    INPUT:
+        widget:         The page widget to wrap in a scroll area (QWidget)
+
+    RETURN:
+        QScrollArea:    A configured scroll area containing the given widget
+
+    DESCRIPTION:
+        Wraps a page widget in a QScrollArea with resizable content, no horizontal
+        scrollbar, and a transparent borderless background. The scroll area's object
+        name is derived from the wrapped widget's object name.
+    """
     def wrapScroll(self, widget):
         scroll = QScrollArea()
         scroll.setObjectName(widget.objectName() + "_scroll")
@@ -61,9 +90,35 @@ class MainWindow(FluentWindow):
         scroll.viewport().setStyleSheet("background: transparent;")
         return scroll
 
+    """
+    Name: toggleAppTheme
+
+    INPUT:
+        N/A
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Toggles the application's visual theme between light and dark mode
+        using qfluentwidgets' lazy theme toggle.
+    """
     def toggleAppTheme(self):
         toggleTheme(lazy=True)
 
+    """
+    Name: closeEvent
+
+    INPUT:
+        event:          The close event triggered when the window is closed (QCloseEvent)
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Handles the window close event by closing the local storage database
+        connection before passing the event to the parent class for default handling.
+    """
     def closeEvent(self, event):
         self.storage.close()
         super().closeEvent(event)

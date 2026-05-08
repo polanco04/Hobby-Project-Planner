@@ -41,6 +41,21 @@ STATUS_COLORS = {
 }
 
 class projectPage(QWidget):
+    """
+    Name: __init__
+
+    INPUT:
+        hobbyist:       The current Hobbyist instance (Hobbyist)
+        storage:        The LocalStorage instance for persistence (LocalStorage)
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Initializes the projects page with a header row containing a New Project
+        button, a scrollable project list area, a separator, and a feature card
+        row. Calls refreshProjects() to populate the initial project list.
+    """
     def __init__(self, hobbyist: Hobbyist, storage=None):
         super().__init__()
         self.hobbyist = hobbyist
@@ -86,10 +101,37 @@ class projectPage(QWidget):
 
         self.refreshProjects()
 
+    """
+    Name: showEvent
+
+    INPUT:
+        event:          The show event triggered when the widget becomes visible (QShowEvent)
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Called whenever the projects page is shown. Refreshes the feature cards
+        row with new random images.
+    """
     def showEvent(self, event):
         super().showEvent(event)
         self.refreshFeatureCards()
 
+    """
+    Name: openNewProjectDialog
+
+    INPUT:
+        N/A
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Opens the NewProjectDialog. If accepted, creates a new project on the
+        hobbyist, saves it to storage, and refreshes the project list. Shows a
+        warning InfoBar if project creation fails.
+    """
     def openNewProjectDialog(self):
         dialog = NewProjectDialog(self.window())
         if dialog.exec():
@@ -113,6 +155,19 @@ class projectPage(QWidget):
                     position=InfoBarPosition.TOP
                 )
 
+    """
+    Name: refreshProjects
+
+    INPUT:
+        N/A
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Clears and rebuilds the project list container. Shows a no-projects card
+        if the hobbyist has no projects, otherwise renders a card for each project.
+    """
     def refreshProjects(self):
         while self.projectsContainer.count():
             item = self.projectsContainer.takeAt(0)
@@ -127,6 +182,19 @@ class projectPage(QWidget):
         
         self.projectsContainer.addStretch() 
 
+    """
+    Name: refreshFeatureCards
+
+    INPUT:
+        N/A
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Clears and rebuilds the feature card row by picking a random image for
+        each caption defined in FEATURE_CARDS.
+    """
     def refreshFeatureCards(self):
         while self.featureRow.count():
             item = self.featureRow.takeAt(0)
@@ -137,6 +205,19 @@ class projectPage(QWidget):
             image = random.choice(images)
             self.featureRow.addWidget(createFeatureCard(image, caption))
 
+    """
+    Name: createNpCard
+
+    INPUT:
+        N/A
+
+    RETURN:
+        CardWidget:     A centered card prompting the user to create a project
+
+    DESCRIPTION:
+        Builds and returns a card with a folder icon, title, and body text
+        indicating that no projects exist yet.
+    """
     def createNpCard(self):
         card = CardWidget()
         layout = QVBoxLayout(card)
@@ -163,6 +244,20 @@ class projectPage(QWidget):
         layout.addWidget(body)
         return card
 
+    """
+    Name: createProjectCard
+
+    INPUT:
+        project:        The Project instance to display (Project)
+
+    RETURN:
+        CardWidget:     A card showing project details and action buttons
+
+    DESCRIPTION:
+        Builds and returns a card for the given project showing its title,
+        description, deadline, and status badge, alongside Open, Edit, On Hold,
+        and Delete action buttons.
+    """
     def createProjectCard(self, project):
         card = CardWidget()
         layout = QHBoxLayout(card)
@@ -233,12 +328,39 @@ class projectPage(QWidget):
         layout.addWidget(btnWidget)
         return card
 
+    """
+    Name: openProject
+
+    INPUT:
+        project:        The Project instance to open (Project)
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Sets the given project on the project view page and navigates the main
+        window to the view scroll area.
+    """
     def openProject(self, project):
         mainWindow = self.window()
         if hasattr(mainWindow, "projectViewPage"):
             mainWindow.projectViewPage.setProject(project)
             mainWindow.switchTo(mainWindow.viewScroll)
 
+    """
+    Name: editProject
+
+    INPUT:
+        project:        The Project instance to edit (Project)
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Opens the EditProjectDialog for the given project. If accepted, applies
+        the updated title, description, and deadline, saves to storage, and
+        refreshes the project list.
+    """
     def editProject(self, project):
         dialog = EditProjectDialog(project, self.window())
         if dialog.exec():
@@ -252,6 +374,20 @@ class projectPage(QWidget):
                 self.storage.saveProject(project)
             self.refreshProjects()
 
+    """
+    Name: toggleHold
+
+    INPUT:
+        project:        The Project instance to toggle hold status on (Project)
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Toggles the project's status between ON_HOLD and its appropriate active
+        state (PLANNING, IN_PROGRESS, or COMPLETED) based on task completion.
+        Saves the updated project to storage and refreshes the project list.
+    """
     def toggleHold(self, project):
         if project.status == ProjectStatus.ON_HOLD:
             completed = sum(1 for t in project.tasks if t.dateCompleted)
@@ -271,6 +407,20 @@ class projectPage(QWidget):
             self.storage.saveProject(project)
         self.refreshProjects()
 
+    """
+    Name: deleteProject
+
+    INPUT:
+        project:        The Project instance to delete (Project)
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Shows a confirmation dialog before deleting the project. If confirmed,
+        removes it from the hobbyist, deletes it from storage, saves the hobbyist,
+        and refreshes the project list.
+    """
     def deleteProject(self, project):
         dialog = MessageBox(
             "Delete Project",

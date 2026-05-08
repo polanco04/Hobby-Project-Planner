@@ -27,6 +27,21 @@ from pathlib import Path
 from utils import getAppDataDir
 
 class projectViewPage(QWidget):
+    """
+    Name: __init__
+
+    INPUT:
+        storage:        The LocalStorage instance for persistence (LocalStorage)
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Initializes the project view page with a back button, project title and
+        description labels, a tab bar with Tasks/Milestones/Images/Export tabs,
+        and a stacked widget to hold each tab's content. Applies theme colors
+        and sets the Tasks tab as active by default.
+    """
     def __init__(self, storage=None):
         super().__init__()
 
@@ -112,6 +127,19 @@ class projectViewPage(QWidget):
 
     # ─── Theme ────────────────────────────────────────────────────────────────
 
+    """
+    Name: assignBtnStyle
+
+    INPUT:
+        N/A
+
+    RETURN:
+        str:            A CSS stylesheet string for standard action buttons
+
+    DESCRIPTION:
+        Returns a theme-aware stylesheet for standard (non-destructive) action
+        buttons, using light text/borders on dark theme and dark on light theme.
+    """
     def assignBtnStyle(self):
         if isDarkTheme():
             return (
@@ -126,6 +154,19 @@ class projectViewPage(QWidget):
                 "QPushButton:hover { background: rgba(32,32,32,0.08); }"
             )
 
+    """
+    Name: deleteBtnStyle
+
+    INPUT:
+        N/A
+
+    RETURN:
+        str:            A CSS stylesheet string for destructive delete buttons
+
+    DESCRIPTION:
+        Returns a fixed red-toned stylesheet for delete buttons, consistent
+        across both light and dark themes.
+    """
     def deleteBtnStyle(self):
         return (
             "QPushButton { color: #CC4444; border: 1px solid #CC4444; border-radius: 6px;"
@@ -133,6 +174,20 @@ class projectViewPage(QWidget):
             "QPushButton:hover { background: rgba(204,68,68,0.10); }"
         )
 
+    """
+    Name: applyThemeColors
+
+    INPUT:
+        N/A
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Applies theme-aware stylesheets to the back button, tab bar, tab buttons,
+        summary card, task list, add task button, and milestone date input based
+        on whether the current theme is dark or light.
+    """
     def applyThemeColors(self):
         if isDarkTheme():
             self.backButton.setStyleSheet(
@@ -200,6 +255,19 @@ class projectViewPage(QWidget):
 
     # ─── Tasks Tab ────────────────────────────────────────────────────────────
 
+    """
+    Name: createTasksTab
+
+    INPUT:
+        N/A
+
+    RETURN:
+        CardWidget:     The tasks tab widget containing the input row and task list
+
+    DESCRIPTION:
+        Builds and returns the Tasks tab, which contains a text input and add
+        button for creating tasks, and a QListWidget to display them.
+    """
     def createTasksTab(self):
         page = CardWidget()
         pageLayout = QVBoxLayout(page)
@@ -229,6 +297,20 @@ class projectViewPage(QWidget):
 
         return page
 
+    """
+    Name: addTask
+
+    INPUT:
+        N/A
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Reads the task input field and creates a new Task using the project's
+        deadline. Adds it to the project, saves, renders it in the list, and
+        syncs the project status. Shows a warning InfoBar on failure.
+    """
     def addTask(self):
         if not self.project:
             return
@@ -246,6 +328,20 @@ class projectViewPage(QWidget):
             InfoBar.warning(title="Couldn't add task", content=str(e), parent=self,
                             duration=3000, position=InfoBarPosition.TOP)
 
+    """
+    Name: renderTask
+
+    INPUT:
+        task:           The Task instance to render in the list (Task)
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Creates a list item widget for the given task containing a checkbox,
+        milestone assignment button, edit button, delete button, and a label
+        showing which milestones the task belongs to. Wires up all interactions.
+    """
     def renderTask(self, task: Task):
         item = QListWidgetItem()
         self.taskList.addItem(item)
@@ -331,6 +427,19 @@ class projectViewPage(QWidget):
         item.setSizeHint(rowWidget.sizeHint())
         self.taskList.setItemWidget(item, rowWidget)
 
+    """
+    Name: editTask
+
+    INPUT:
+        task:           The Task instance to edit (Task)
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Opens a simple dialog to rename the task. If accepted with a non-empty
+        name, updates the task's details, saves, and refreshes the task list.
+    """
     def editTask(self, task: Task):
         dialog = QDialog(self)
         dialog.setWindowTitle("Edit Task")
@@ -357,6 +466,20 @@ class projectViewPage(QWidget):
             self.save()
             self.refreshTaskList()
 
+    """
+    Name: deleteTask
+
+    INPUT:
+        task:           The Task instance to delete (Task)
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Shows a confirmation dialog before deleting the task. If confirmed,
+        removes the task from all milestones and the project, deletes it from
+        storage, and refreshes both the task and milestone lists.
+    """
     def deleteTask(self, task: Task):
         dialog = MessageBox(
                 "Delete Task",
@@ -384,6 +507,21 @@ class projectViewPage(QWidget):
             InfoBar.warning(title="Couldn't delete task", content=str(e),
                             parent=self, duration=3000, position=InfoBarPosition.TOP)
 
+    """
+    Name: updateTaskMilestoneLabel
+
+    INPUT:
+        task:           The Task instance whose milestone names to display (Task)
+        label:          The QLabel to update with milestone info (QLabel)
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Sets the label text to a comma-separated list of milestone names the task
+        belongs to, prefixed with an arrow. Clears the label if the task has no
+        milestones.
+    """
     def updateTaskMilestoneLabel(self, task: Task, label: QLabel):
         if task.milestones:
             names = ", ".join(m.name for m in task.milestones)
@@ -391,6 +529,21 @@ class projectViewPage(QWidget):
         else:
             label.setText("")
 
+    """
+    Name: showAssignToMilestoneDialog
+
+    INPUT:
+        task:           The Task instance to assign or unassign (Task)
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Opens a dialog listing all milestones for the project. The selected
+        milestone is toggled — if the task is already assigned it is removed,
+        otherwise it is added. Updates the task's milestone label and refreshes
+        the milestone list on success.
+    """
     def showAssignToMilestoneDialog(self, task: Task):
         if not self.project.milestones:
             InfoBar.warning(title="No milestones", content="Add a milestone first.",
@@ -449,6 +602,19 @@ class projectViewPage(QWidget):
 
     # ─── Milestones Tab ───────────────────────────────────────────────────────
 
+    """
+    Name: createMilestonesTab
+
+    INPUT:
+        N/A
+
+    RETURN:
+        CardWidget:     The milestones tab widget with input row and milestone list
+
+    DESCRIPTION:
+        Builds and returns the Milestones tab containing a title input, a date
+        picker, an add button, and a QListWidget for displaying milestones.
+    """
     def createMilestonesTab(self):
         page = CardWidget()
         pageLayout = QVBoxLayout(page)
@@ -487,6 +653,20 @@ class projectViewPage(QWidget):
 
         return page
 
+    """
+    Name: addMilestone
+
+    INPUT:
+        N/A
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Reads the milestone title input and date picker to create a new Milestone.
+        Adds it to the project, saves, renders it in the list, and clears the
+        input. Shows a warning InfoBar on failure.
+    """
     def addMilestone(self):
         if not self.project:
             return
@@ -505,6 +685,20 @@ class projectViewPage(QWidget):
             InfoBar.warning(title="Couldn't add milestone", content=str(e), parent=self,
                             duration=3000, position=InfoBarPosition.TOP)
 
+    """
+    Name: renderMilestone
+
+    INPUT:
+        milestone:      The Milestone instance to render in the list (Milestone)
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Creates a list item widget for the given milestone showing a status dot,
+        name, deadline, linked task names, and completion percentage. Adds assign,
+        edit, and delete buttons with appropriate handlers.
+    """
     def renderMilestone(self, milestone: Milestone):
         item = QListWidgetItem()
         self.milestoneList.addItem(item)
@@ -586,6 +780,20 @@ class projectViewPage(QWidget):
         item.setSizeHint(rowWidget.sizeHint())
         self.milestoneList.setItemWidget(item, rowWidget)
 
+    """
+    Name: editMilestone
+
+    INPUT:
+        milestone:      The Milestone instance to edit (Milestone)
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Opens a dialog to rename the milestone and update its deadline. If
+        accepted with a non-empty name, applies the changes, saves, and refreshes
+        the milestone list.
+    """
     def editMilestone(self, milestone: Milestone):
         dialog = QDialog(self)
         dialog.setWindowTitle("Edit Milestone")
@@ -627,6 +835,20 @@ class projectViewPage(QWidget):
         self.save()
         self.refreshMilestoneList()
 
+    """
+    Name: deleteMilestone
+
+    INPUT:
+        milestone:      The Milestone instance to delete (Milestone)
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Shows a confirmation dialog before deleting the milestone. If confirmed,
+        removes all task links, removes the milestone from the project, deletes
+        it from storage, and refreshes both lists.
+    """
     def deleteMilestone(self, milestone: Milestone):
         dialog = MessageBox(
                 "Delete Milestone",
@@ -651,6 +873,20 @@ class projectViewPage(QWidget):
             InfoBar.warning(title="Couldn't delete milestone", content=str(e),
                             parent=self, duration=3000, position=InfoBarPosition.TOP)
 
+    """
+    Name: showAssignTasksDialog
+
+    INPUT:
+        milestone:      The Milestone instance to assign tasks to (Milestone)
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Opens a dialog with checkboxes for all project tasks. On accept, syncs
+        task assignments to match the checkbox state, updating links in both
+        directions. Refreshes both lists and saves on completion.
+    """
     def showAssignTasksDialog(self, milestone: Milestone):
         if not self.project.tasks:
             InfoBar.warning(title="No tasks", content="Add tasks first.",
@@ -701,18 +937,58 @@ class projectViewPage(QWidget):
         self.refreshTaskList()
         self.save()
 
+    """
+    Name: refreshMilestoneList
+
+    INPUT:
+        N/A
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Clears the milestone list widget and re-renders all milestones from the
+        current project.
+    """
     def refreshMilestoneList(self):
         self.milestoneList.clear()
         if self.project:
             for milestone in self.project.milestones:
                 self.renderMilestone(milestone)
 
+    """
+    Name: refreshTaskList
+
+    INPUT:
+        N/A
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Clears the task list widget and re-renders all tasks from the current
+        project.
+    """
     def refreshTaskList(self):
         self.taskList.clear()
         if self.project:
             for task in self.project.tasks:
                 self.renderTask(task)
 
+    """
+    Name: styleDateInput
+
+    INPUT:
+        N/A
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Applies a theme-aware stylesheet to the milestone date input widget,
+        using dark backgrounds and white text in dark mode, and white backgrounds
+        with dark text in light mode.
+    """
     def styleDateInput(self):
         if isDarkTheme():
             self.milestoneDateInput.setStyleSheet("""
@@ -761,6 +1037,19 @@ class projectViewPage(QWidget):
 
     # ─── Images Tab ───────────────────────────────────────────────────────────
 
+    """
+    Name: createImagesTab
+
+    INPUT:
+        N/A
+
+    RETURN:
+        CardWidget:     The images tab widget with a scrollable grid and upload button
+
+    DESCRIPTION:
+        Builds and returns the Images tab containing a scrollable 3-column image
+        grid and a dashed upload button as the first grid cell.
+    """
     def createImagesTab(self):
         page = CardWidget()
         page.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
@@ -804,6 +1093,20 @@ class projectViewPage(QWidget):
 
         return page
 
+    """
+    Name: uploadImage
+
+    INPUT:
+        N/A
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Opens a file dialog to select an image, then prompts for an optional
+        description. Creates a Media object, uploads it to the project folder,
+        adds it to the project, saves, and renders it in the image grid.
+    """
     def uploadImage(self):
         if not self.project:
             return
@@ -841,6 +1144,21 @@ class projectViewPage(QWidget):
             InfoBar.warning(title="Couldn't add image", content=str(e), parent=self,
                             duration=3000, position=InfoBarPosition.TOP)
 
+    """
+    Name: renderImage
+
+    INPUT:
+        media:          The Media instance to render in the image grid (Media)
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Creates a grid cell widget for the given media item showing a scaled
+        image with a delete button overlay, and a caption label below. Places
+        the cell in the next available 3-column grid position. Skips rendering
+        if the pixmap is null.
+    """
     def renderImage(self, media: Media):
         IMG_W = 280
         IMG_H = 200
@@ -927,6 +1245,20 @@ class projectViewPage(QWidget):
         
         self.imageGrid.addWidget(cellWidget, gridRow, gridCol, Qt.AlignmentFlag.AlignTop)
 
+    """
+    Name: deleteImage
+
+    INPUT:
+        media:          The Media instance to delete (Media)
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Shows a confirmation dialog before deleting the image. If confirmed,
+        removes the media from the project and storage, deletes the file from
+        disk, saves, and re-renders all remaining images in the grid.
+    """
     def deleteImage(self, media: Media):
         dialog = MessageBox(
             "Delete Image",
@@ -954,6 +1286,19 @@ class projectViewPage(QWidget):
             InfoBar.warning(title="Couldn't delete image", content=str(e),
                             parent=self, duration=3000, position=InfoBarPosition.TOP)
 
+    """
+    Name: showFullImage
+
+    INPUT:
+        media:          The Media instance whose image to display full-size (Media)
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Opens a dialog showing the image scaled up to 800x600, with the media's
+        description displayed above the image if one exists.
+    """
     def showFullImage(self, media: Media):
         dialog = QDialog(self)
         dialog.setWindowTitle(media.description or "Image")
@@ -982,6 +1327,19 @@ class projectViewPage(QWidget):
 
     # ─── Export Tab ───────────────────────────────────────────────────────────
 
+    """
+    Name: createExportTab
+
+    INPUT:
+        N/A
+
+    RETURN:
+        CardWidget:     The export tab widget with a summary card and export buttons
+
+    DESCRIPTION:
+        Builds and returns the Export tab containing a scrollable layout with a
+        project summary card and buttons to export the project as PDF or image.
+    """
     def createExportTab(self):
         page = CardWidget()
         outerLayout = QVBoxLayout(page)
@@ -1042,6 +1400,20 @@ class projectViewPage(QWidget):
 
         return page
 
+    """
+    Name: refreshExportSummary
+
+    INPUT:
+        N/A
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Updates the summary card labels with the current project's title,
+        description, task completion count, milestone achievement count, and
+        media count.
+    """
     def refreshExportSummary(self):
         if not self.project:
             return
@@ -1055,8 +1427,20 @@ class projectViewPage(QWidget):
         )
         self.summaryImagesLabel.setText(f"Images: {len(self.project.media)}")
 
+    """
+    Name: exportAsImage
+
+    INPUT:
+        N/A
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Opens a save file dialog for a PNG path, then calls renderProjectImage()
+        to export the project summary as a shareable PNG image.
+    """
     def exportAsImage(self):
-        """Export project as a PNG image (shareable on Instagram etc.)"""
         if not self.project:
             return
         filePath, _ = QFileDialog.getSaveFileName(
@@ -1066,6 +1450,19 @@ class projectViewPage(QWidget):
             return
         self.renderProjectImage(filePath, asPdf=False)
 
+    """
+    Name: exportAsPdf
+
+    INPUT:
+        N/A
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Opens a save file dialog for a PDF path, then calls renderProjectImage()
+        to export the project summary as a PDF file.
+    """
     def exportAsPdf(self):
         if not self.project:
             return
@@ -1076,6 +1473,20 @@ class projectViewPage(QWidget):
             return
         self.renderProjectImage(filePath, asPdf=True)
 
+    """
+    Name: renderProjectImage
+
+    INPUT:
+        filePath:       The destination file path to save the export (str)
+        asPdf:          Whether to export as PDF (True) or PNG (False) (bool)
+
+    DESCRIPTION:
+        Renders the full project summary onto a 1080x1920 QImage canvas including
+        the user's avatar, username, bio, project title and description, a progress
+        bar, tasks and milestones side by side, and an image grid. Saves the result
+        as either a PNG file or a PDF via QPrinter. Shows a success InfoBar on
+        completion.
+    """
     def renderProjectImage(self, filePath, asPdf=False):
         _DATA_DIR = Path(getAppDataDir())
         _AVATAR_FILE = _DATA_DIR / "avatar.png"
@@ -1392,8 +1803,22 @@ class projectViewPage(QWidget):
             position=InfoBarPosition.TOP
         )
 
-        # ─── Tab switching ────────────────────────────────────────────────────────
+        # ─── Tab switching ────────────────────────────────────────────────────────────
 
+    """
+    Name: setActiveTab
+
+    INPUT:
+        index:          The index of the tab to activate (int)
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Switches the stacked widget to the given tab index, marks the corresponding
+        tab button as checked, refreshes the export summary if the export tab is
+        selected, and reapplies theme colors.
+    """
     def setActiveTab(self, index):
         self.contentStack.setCurrentIndex(index)
         for i, button in enumerate(self.tabButtons):
@@ -1402,6 +1827,20 @@ class projectViewPage(QWidget):
             self.refreshExportSummary()
         self.applyThemeColors()
 
+    """
+    Name: changeEvent
+
+    INPUT:
+        event:          The change event (QEvent)
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Listens for palette or style change events and reapplies theme colors,
+        re-sets the active tab, and refreshes both the task and milestone lists
+        to reflect the new theme.
+    """
     def changeEvent(self, event):
         super().changeEvent(event)
         if event.type() in (QEvent.Type.PaletteChange, QEvent.Type.StyleChange):
@@ -1412,17 +1851,57 @@ class projectViewPage(QWidget):
                 self.refreshTaskList()
                 self.refreshMilestoneList()
 
+    """
+    Name: showEvent
+
+    INPUT:
+        event:          The show event triggered when the widget becomes visible (QShowEvent)
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Called whenever the project view page is shown. Reapplies theme colors
+        to ensure the UI is styled correctly for the current theme.
+    """
     def showEvent(self, event):
         super().showEvent(event)
         self.applyThemeColors()
 
     # ─── Navigation ───────────────────────────────────────────────────────────
 
+    """
+    Name: goBackToProjects
+
+    INPUT:
+        N/A
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Navigates the main window back to the projects scroll area by calling
+        switchTo on the main window if it supports it.
+    """
     def goBackToProjects(self):
         mainWindow = self.window()
         if hasattr(mainWindow, "switchTo") and hasattr(mainWindow, "projectPage"):
             mainWindow.switchTo(mainWindow.projectScroll)
 
+    """
+    Name: setProject
+
+    INPUT:
+        project:        The Project instance to display (Project)
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Sets the active project and updates the title and description labels.
+        Clears and re-renders the task list, milestone list, and image grid from
+        the project's data. Resets to the Tasks tab.
+    """
     def setProject(self, project):
         self.project = project
         self.projectTitle.setText(project.title)
@@ -1445,10 +1924,36 @@ class projectViewPage(QWidget):
 
         self.setActiveTab(0)
 
+    """
+    Name: save
+
+    INPUT:
+        N/A
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Saves the current project to local storage if both storage and a project
+        are available.
+    """
     def save(self):
         if self.storage and self.project:
             self.storage.saveProject(self.project)
     
+    """
+    Name: syncProjectStatus
+
+    INPUT:
+        N/A
+
+    RETURN:
+        N/A
+
+    DESCRIPTION:
+        Recalculates the project's progress and status, saves the updated project,
+        and refreshes the projects list on the main projects page if accessible.
+    """
     def syncProjectStatus(self):
         if not self.project:
             return
